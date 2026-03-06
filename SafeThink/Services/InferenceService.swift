@@ -1,0 +1,138 @@
+import Foundation
+import MLX
+import MLXLLM
+import MLXLMCommon
+
+enum InferenceError: Error, LocalizedError {
+    case modelNotLoaded
+    case generationFailed(String)
+    case outOfMemory
+    case cancelled
+
+    var errorDescription: String? {
+        switch self {
+        case .modelNotLoaded: return "No model is currently loaded"
+        case .generationFailed(let msg): return "Generation failed: \(msg)"
+        case .outOfMemory: return "Insufficient memory for this operation"
+        case .cancelled: return "Generation was cancelled"
+        }
+    }
+}
+
+@MainActor
+final class InferenceService: ObservableObject {
+    static let shared = InferenceService()
+
+    @Published private(set) var isModelLoaded = false
+    @Published private(set) var isGenerating = false
+    @Published private(set) var loadedModelId: String?
+    @Published private(set) var tokensPerSecond: Double = 0
+
+    private var modelContainer: ModelContainer?
+    private var generationTask: Task<Void, Never>?
+
+    private init() {}
+
+    // MARK: - Model Loading
+
+    func loadModel(from directory: URL) async throws {
+        unloadModel()
+
+        let configuration = ModelConfiguration(directory: directory)
+        let container = try await LLMModelFactory.shared.loadContainer(configuration: configuration) { progress in
+            Task { @MainActor in
+                // Progress callback during model weight loading
+            }
+        }
+
+        self.modelContainer = container
+        self.isModelLoaded = true
+        self.loadedModelId = directory.lastPathComponent
+    }
+
+    func unloadModel() {
+        cancelGeneration()
+        modelContainer = nil
+        isModelLoaded = false
+        loadedModelId = nil
+        tokensPerSecond = 0
+    }
+
+    // MARK: - Text Generation
+
+    func generate(
+        messages: [[String: String]],
+        maxTokens: Int = 2048,
+        temperature: Float = 0.7,
+        topP: Float = 0.9
+    ) -> AsyncStream<String> {
+        AsyncStream { continuation in
+            generationTask = Task {
+                guard let container = modelContainer else {
+                    continuation.finish()
+                    return
+                }
+
+                self.isGenerating = true
+                let startTime = Date()
+                var totalTokens = 0
+
+                do {
+                    let input = try await container.perform { context in
+                        try await context.processor.prepare(input: .init(messages: messages))
+                    }
+
+                    let generateParameters = GenerateParameters(
+                        temperature: temperature,
+                        topP: topP
+                    )
+
+                    let result = try await container.perform { context in
+                        try MLXLMCommon.generate(
+                            input: input,
+                            parameters: generateParameters,
+                            context: context
+                        ) { tokens in
+                            if Task.isCancelled {
+                                return .stop
+                            }
+
+                            let text = context.tokenizer.decode(tokens: [tokens.last!])
+                            totalTokens += 1
+
+                            let elapsed = Date().timeIntervalSince(startTime)
+                            if elapsed > 0 {
+                                Task { @MainActor in
+                                    self.tokensPerSecond = Double(totalTokens) / elapsed
+                                }
+                            }
+
+                            continuation.yield(text)
+
+                            if totalTokens >= maxTokens {
+                                return .stop
+                            }
+                            return .more
+                        }
+                    }
+
+                    _ = result
+
+                } catch {
+                    if !Task.isCancelled {
+                        continuation.yield("\n[Error: \(error.localizedDescription)]")
+                    }
+                }
+
+                self.isGenerating = false
+                continuation.finish()
+            }
+        }
+    }
+
+    func cancelGeneration() {
+        generationTask?.cancel()
+        generationTask = nil
+        isGenerating = false
+    }
+}
