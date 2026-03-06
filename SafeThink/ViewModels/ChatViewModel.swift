@@ -200,6 +200,23 @@ final class ChatViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Edit & Resend
+
+    func editAndResend(messageId: String, newContent: String) async {
+        guard let index = messages.firstIndex(where: { $0.id == messageId }) else { return }
+
+        // Remove the edited message and all subsequent messages
+        let toRemove = Array(messages[index...])
+        for msg in toRemove {
+            try? databaseService.deleteMessage(id: msg.id)
+        }
+        messages.removeSubrange(index...)
+
+        // Send as new message
+        inputText = newContent
+        await sendMessage()
+    }
+
     // MARK: - Search
 
     func searchMessages() {

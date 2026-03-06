@@ -59,9 +59,12 @@ final class ModelManagerViewModel: ObservableObject {
     func activateModel(_ model: ModelInfo) async {
         guard downloadService.isModelDownloaded(model.id) else { return }
 
-        let modelDir = downloadService.modelDirectory(for: model.id)
+        // Model files live in MLX Hub's cache, not our local models directory.
+        // Load via HuggingFace ID which resolves to the cached download.
+        let huggingFaceId = model.downloadURL
+            .replacingOccurrences(of: "https://huggingface.co/", with: "")
         do {
-            try await inferenceService.loadModel(from: modelDir)
+            try await inferenceService.loadModel(huggingFaceId: huggingFaceId)
             activeModelId = model.id
         } catch {
             errorMessage = error.localizedDescription

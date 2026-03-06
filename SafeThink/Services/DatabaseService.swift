@@ -119,6 +119,16 @@ final class DatabaseService {
             }
         }
 
+        migrator.registerMigration("v2_embeddings") { db in
+            // Add embedding vector columns (stored as BLOB for compact storage)
+            try db.alter(table: "memories") { t in
+                t.add(column: "embeddingVector", .blob)
+            }
+            try db.alter(table: "document_chunks") { t in
+                t.add(column: "embeddingVector", .blob)
+            }
+        }
+
         try migrator.migrate(dbPool!)
     }
 
@@ -208,6 +218,17 @@ final class DatabaseService {
         }
     }
 
+    func createMemory(_ memory: Memory, embedding: [Float]) throws {
+        try dbPool!.write { db in
+            try memory.insert(db)
+            let blobData = Self.floatsToData(embedding)
+            try db.execute(
+                sql: "UPDATE memories SET embeddingVector = ? WHERE id = ?",
+                arguments: [blobData, memory.id]
+            )
+        }
+    }
+
     func fetchAllMemories() throws -> [Memory] {
         try dbPool!.read { db in
             try Memory.order(Column("createdAt").desc).fetchAll(db)
@@ -217,6 +238,20 @@ final class DatabaseService {
     func deleteMemory(id: String) throws {
         try dbPool!.write { db in
             _ = try Memory.deleteOne(db, id: id)
+        }
+    }
+
+    /// Fetch all memories with their embedding vectors for similarity search
+    func fetchMemoriesWithEmbeddings() throws -> [(memory: Memory, embedding: [Float]?)] {
+        try dbPool!.read { db in
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT *, embeddingVector FROM memories ORDER BY createdAt DESC
+                """)
+            return rows.map { row in
+                let memory = Memory(row: row)
+                let embedding: [Float]? = (row["embeddingVector"] as? Data).flatMap { Self.dataToFloats($0) }
+                return (memory, embedding)
+            }
         }
     }
 
@@ -230,12 +265,73 @@ final class DatabaseService {
         }
     }
 
+    func saveChunks(_ chunks: [DocumentChunk], embeddings: [[Float]]) throws {
+        guard chunks.count == embeddings.count else { return }
+        try dbPool!.write { db in
+            for (chunk, embedding) in zip(chunks, embeddings) {
+                try chunk.insert(db)
+                let blobData = Self.floatsToData(embedding)
+                try db.execute(
+                    sql: "UPDATE document_chunks SET embeddingVector = ? WHERE id = ?",
+                    arguments: [blobData, chunk.id]
+                )
+            }
+        }
+    }
+
     func fetchChunks(documentId: String) throws -> [DocumentChunk] {
         try dbPool!.read { db in
             try DocumentChunk
                 .filter(Column("documentId") == documentId)
                 .order(Column("chunkIndex").asc)
                 .fetchAll(db)
+        }
+    }
+
+    /// Fetch all document chunks with embeddings for a given document
+    func fetchChunksWithEmbeddings(documentId: String) throws -> [(chunk: DocumentChunk, embedding: [Float]?)] {
+        try dbPool!.read { db in
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT *, embeddingVector FROM document_chunks
+                WHERE documentId = ?
+                ORDER BY chunkIndex ASC
+                """, arguments: [documentId])
+            return rows.map { row in
+                let chunk = DocumentChunk(row: row)
+                let embedding: [Float]? = (row["embeddingVector"] as? Data).flatMap { Self.dataToFloats($0) }
+                return (chunk, embedding)
+            }
+        }
+    }
+
+    /// Fetch all document chunks with embeddings (for cross-document search)
+    func fetchAllChunksWithEmbeddings() throws -> [(chunk: DocumentChunk, embedding: [Float]?)] {
+        try dbPool!.read { db in
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT *, embeddingVector FROM document_chunks ORDER BY documentId, chunkIndex
+                """)
+            return rows.map { row in
+                let chunk = DocumentChunk(row: row)
+                let embedding: [Float]? = (row["embeddingVector"] as? Data).flatMap { Self.dataToFloats($0) }
+                return (chunk, embedding)
+            }
+        }
+    }
+
+    // MARK: - Vector Helpers
+
+    /// Convert [Float] to Data for BLOB storage
+    static func floatsToData(_ floats: [Float]) -> Data {
+        floats.withUnsafeBufferPointer { buffer in
+            Data(buffer: buffer)
+        }
+    }
+
+    /// Convert Data back to [Float]
+    static func dataToFloats(_ data: Data) -> [Float] {
+        data.withUnsafeBytes { rawBuffer in
+            let buffer = rawBuffer.bindMemory(to: Float.self)
+            return Array(buffer)
         }
     }
 

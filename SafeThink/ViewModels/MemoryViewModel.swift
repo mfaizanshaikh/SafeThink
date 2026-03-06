@@ -15,8 +15,10 @@ final class MemoryViewModel: ObservableObject {
 
     func saveMemory(type: MemoryType, text: String) {
         let memory = Memory(memoryType: type, memoryText: text)
-        try? memoryService.saveMemory(memory)
-        loadMemories()
+        Task {
+            try? await memoryService.saveMemory(memory)
+            loadMemories()
+        }
     }
 
     func deleteMemory(_ memory: Memory) {

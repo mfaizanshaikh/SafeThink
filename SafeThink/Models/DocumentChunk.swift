@@ -15,4 +15,12 @@ struct DocumentChunk: Codable, Identifiable, FetchableRecord, PersistableRecord 
         self.chunkText = chunkText
         self.chunkIndex = chunkIndex
     }
+
+    // Row initializer for manual fetching (needed for vector search queries)
+    init(row: Row) {
+        id = row["id"]
+        documentId = row["documentId"]
+        chunkText = row["chunkText"]
+        chunkIndex = row["chunkIndex"]
+    }
 }

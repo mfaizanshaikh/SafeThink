@@ -2,8 +2,11 @@ import SwiftUI
 
 struct ChatView: View {
     @StateObject private var viewModel = ChatViewModel()
+    @StateObject private var voiceService = VoiceService.shared
     @State private var showConversationList = false
     @State private var showAttachmentMenu = false
+    @State private var editingMessageId: String?
+    @State private var editText = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,9 +15,16 @@ struct ChatView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel.messages) { message in
-                            MessageBubbleView(message: message, onRegenerate: {
-                                Task { await viewModel.regenerateLastResponse() }
-                            })
+                            MessageBubbleView(
+                                message: message,
+                                onRegenerate: {
+                                    Task { await viewModel.regenerateLastResponse() }
+                                },
+                                onEdit: message.role == .user ? {
+                                    editingMessageId = message.id
+                                    editText = message.content
+                                } : nil
+                            )
                             .id(message.id)
                         }
 
@@ -43,6 +53,30 @@ struct ChatView: View {
                 }
             }
 
+            // Voice recording indicator
+            if voiceService.isRecording {
+                HStack(spacing: 8) {
+                    WaveformView(audioLevel: voiceService.audioLevel, isRecording: true)
+                    Text(voiceService.transcribedText.isEmpty ? "Listening..." : voiceService.transcribedText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Spacer()
+                    Button {
+                        voiceService.stopRecording()
+                        if !voiceService.transcribedText.isEmpty {
+                            viewModel.inputText = voiceService.transcribedText
+                        }
+                    } label: {
+                        Image(systemName: "stop.circle.fill")
+                            .foregroundStyle(.red)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 6)
+                .background(Color(.systemGray6))
+            }
+
             // Context indicator
             if viewModel.currentConversation != nil {
                 HStack {
@@ -69,7 +103,7 @@ struct ChatView: View {
                 onSend: { Task { await viewModel.sendMessage() } },
                 onStop: { viewModel.stopGeneration() },
                 onAttachment: { showAttachmentMenu = true },
-                onMic: {},
+                onMic: { toggleVoiceInput() },
                 onTemplate: { viewModel.showTemplates = true }
             )
         }
@@ -104,8 +138,37 @@ struct ChatView: View {
             })
             .presentationDetents([.medium])
         }
+        .alert("Edit Message", isPresented: .init(
+            get: { editingMessageId != nil },
+            set: { if !$0 { editingMessageId = nil } }
+        )) {
+            TextField("Edit message", text: $editText)
+            Button("Cancel", role: .cancel) { editingMessageId = nil }
+            Button("Send") {
+                if let id = editingMessageId {
+                    Task { await viewModel.editAndResend(messageId: id, newContent: editText) }
+                    editingMessageId = nil
+                }
+            }
+        }
         .onAppear {
             viewModel.loadConversations()
+        }
+    }
+
+    private func toggleVoiceInput() {
+        if voiceService.isRecording {
+            voiceService.stopRecording()
+            if !voiceService.transcribedText.isEmpty {
+                viewModel.inputText = voiceService.transcribedText
+            }
+        } else {
+            Task {
+                let authorized = await voiceService.requestAuthorization()
+                if authorized {
+                    try? voiceService.startRecording()
+                }
+            }
         }
     }
 }

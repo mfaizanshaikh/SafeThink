@@ -113,34 +113,58 @@ final class DocumentService: ObservableObject {
 
         // 5. Embed and store chunks
         var dbChunks: [DocumentChunk] = []
+        var embeddings: [[Float]] = []
+        let hasEmbeddingModel = embeddingService.isModelLoaded
+
         for (index, chunkText) in chunks.enumerated() {
             let chunk = DocumentChunk(documentId: documentId, chunkText: chunkText, chunkIndex: index)
             dbChunks.append(chunk)
+
+            // Generate embedding if model is loaded
+            if hasEmbeddingModel {
+                let embedding = try await embeddingService.embed(text: chunkText)
+                embeddings.append(embedding)
+            }
+
             processingProgress = 0.5 + 0.4 * Double(index + 1) / Double(chunks.count)
         }
 
-        try databaseService.saveChunks(dbChunks)
+        // Save chunks with or without embeddings
+        if hasEmbeddingModel && embeddings.count == dbChunks.count {
+            try databaseService.saveChunks(dbChunks, embeddings: embeddings)
+        } else {
+            try databaseService.saveChunks(dbChunks)
+        }
         processingProgress = 1.0
 
         return documentId
     }
 
     func retrieveRelevantChunks(query: String, documentId: String, topK: Int = 5) async throws -> [DocumentChunk] {
-        // Get all chunks for the document
-        let allChunks = try databaseService.fetchChunks(documentId: documentId)
-
-        // Embed the query
-        let queryEmbedding = try await embeddingService.embed(text: query)
-
-        // Embed each chunk and compute similarity
-        var scored: [(chunk: DocumentChunk, score: Float)] = []
-        for chunk in allChunks {
-            let chunkEmbedding = try await embeddingService.embed(text: chunk.chunkText)
-            let score = embeddingService.cosineSimilarity(queryEmbedding, chunkEmbedding)
-            scored.append((chunk, score))
+        guard embeddingService.isModelLoaded else {
+            // Fallback: return first few chunks when embedding model isn't loaded
+            return Array(try databaseService.fetchChunks(documentId: documentId).prefix(topK))
         }
 
-        // Sort by similarity and return top K
+        let queryEmbedding = try await embeddingService.embed(text: query)
+
+        // Fetch chunks with their stored embeddings
+        let chunksWithEmbeddings = try databaseService.fetchChunksWithEmbeddings(documentId: documentId)
+
+        var scored: [(chunk: DocumentChunk, score: Float)] = []
+        for (chunk, embedding) in chunksWithEmbeddings {
+            if let embedding {
+                // Use stored embedding (fast path)
+                let score = embeddingService.cosineSimilarity(queryEmbedding, embedding)
+                scored.append((chunk, score))
+            } else {
+                // Compute on the fly (slow path, for chunks without stored embeddings)
+                let chunkEmbedding = try await embeddingService.embed(text: chunk.chunkText)
+                let score = embeddingService.cosineSimilarity(queryEmbedding, chunkEmbedding)
+                scored.append((chunk, score))
+            }
+        }
+
         scored.sort { $0.score > $1.score }
         return Array(scored.prefix(topK).map(\.chunk))
     }

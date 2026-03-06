@@ -17,8 +17,15 @@ final class MemoryService: ObservableObject {
         memories = (try? databaseService.fetchAllMemories()) ?? []
     }
 
-    func saveMemory(_ memory: Memory) throws {
-        try databaseService.createMemory(memory)
+    func saveMemory(_ memory: Memory) async throws {
+        if embeddingService.isModelLoaded {
+            // Generate embedding for the memory text and store alongside
+            let embedding = try await embeddingService.embed(text: memory.memoryText)
+            try databaseService.createMemory(memory, embedding: embedding)
+        } else {
+            // Save without embedding (can be backfilled later)
+            try databaseService.createMemory(memory)
+        }
         loadMemories()
     }
 
@@ -41,15 +48,28 @@ final class MemoryService: ObservableObject {
     }
 
     func retrieveRelevantMemories(for query: String, topK: Int = 5) async throws -> [Memory] {
-        guard embeddingService.isModelLoaded else { return [] }
+        guard embeddingService.isModelLoaded else {
+            // Fallback: return most recent memories when embedding model isn't loaded
+            return Array(memories.prefix(topK))
+        }
 
         let queryEmbedding = try await embeddingService.embed(text: query)
 
+        // Fetch all memories with their stored embeddings from DB
+        let memoriesWithEmbeddings = try databaseService.fetchMemoriesWithEmbeddings()
+
         var scored: [(memory: Memory, score: Float)] = []
-        for memory in memories {
-            let memEmbedding = try await embeddingService.embed(text: memory.memoryText)
-            let score = embeddingService.cosineSimilarity(queryEmbedding, memEmbedding)
-            scored.append((memory, score))
+        for (memory, embedding) in memoriesWithEmbeddings {
+            if let embedding {
+                // Use stored embedding for fast comparison
+                let score = embeddingService.cosineSimilarity(queryEmbedding, embedding)
+                scored.append((memory, score))
+            } else {
+                // Compute embedding on the fly for memories without stored vectors
+                let memEmbedding = try await embeddingService.embed(text: memory.memoryText)
+                let score = embeddingService.cosineSimilarity(queryEmbedding, memEmbedding)
+                scored.append((memory, score))
+            }
         }
 
         scored.sort { $0.score > $1.score }

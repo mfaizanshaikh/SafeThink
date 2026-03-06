@@ -5,6 +5,7 @@ struct MessageBubbleView: View {
     let message: Message
     var isStreaming: Bool = false
     var onRegenerate: (() -> Void)?
+    var onEdit: (() -> Void)?
 
     @State private var showActions = false
 
@@ -72,6 +73,14 @@ struct MessageBubbleView: View {
                         onRegenerate()
                     } label: {
                         Label("Regenerate", systemImage: "arrow.clockwise")
+                    }
+                }
+
+                if message.role == .user, let onEdit {
+                    Button {
+                        onEdit()
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
                     }
                 }
             }

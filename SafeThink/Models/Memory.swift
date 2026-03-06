@@ -25,4 +25,13 @@ struct Memory: Codable, Identifiable, FetchableRecord, PersistableRecord {
         self.createdAt = Date()
         self.relevanceScore = relevanceScore
     }
+
+    // Row initializer for manual fetching (needed for vector search queries)
+    init(row: Row) {
+        id = row["id"]
+        memoryType = MemoryType(rawValue: row["memoryType"]) ?? .fact
+        memoryText = row["memoryText"]
+        createdAt = row["createdAt"]
+        relevanceScore = row["relevanceScore"]
+    }
 }
