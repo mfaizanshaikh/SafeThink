@@ -14,131 +14,125 @@ struct ModelCardView: View {
     @State private var isDownloadInitiating = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 10) {
+            // Header row
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text(model.displayName)
                             .font(.headline)
-                        compatibilityBadge
+                        if isActive {
+                            Text("Active")
+                                .font(.caption2.bold())
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.green.opacity(0.15))
+                                .foregroundStyle(.green)
+                                .clipShape(Capsule())
+                        }
                     }
-                    Text("\(model.parameterCount) parameters | \(model.quantization) | \(model.sizeFormatted)")
+                    Text("\(model.parameterCount) · \(model.quantization) · \(model.sizeFormatted)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                if isActive {
-                    Label("Active", systemImage: "checkmark.circle.fill")
+                compatibilityBadge
+            }
+
+            // Incompatible warning
+            if compatibility == .incompatible {
+                Label("Requires \(model.minRAMGB) GB RAM — not supported on this device", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            } else {
+                // Action area
+                statusView
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private var statusView: some View {
+        switch status {
+        case .notDownloaded:
+            Button {
+                isDownloadInitiating = true
+                onDownload()
+            } label: {
+                HStack(spacing: 8) {
+                    if isDownloadInitiating {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Starting...")
+                    } else {
+                        Label("Download", systemImage: "arrow.down.circle")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(isDownloadInitiating)
+            .onChange(of: status) { _, _ in
+                isDownloadInitiating = false
+            }
+
+        case .downloading(let downloadProgress):
+            VStack(spacing: 4) {
+                ProgressView(value: downloadProgress)
+                HStack {
+                    Text("\(Int(downloadProgress * 100))%")
                         .font(.caption)
-                        .foregroundStyle(.green)
+                        .monospacedDigit()
+                    Spacer()
+                    Button("Cancel", action: onCancel)
+                        .font(.caption)
+                        .foregroundStyle(.red)
                 }
             }
 
-            // Context length
+        case .verifying:
             HStack {
-                Label("Context: \(model.contextLength / 1024)K tokens", systemImage: "text.alignleft")
+                ProgressView()
+                    .controlSize(.small)
+                Text("Verifying...")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            // Status / Actions
-            if compatibility == .incompatible {
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                        .font(.caption)
-                        .padding(.top, 1)
-                    Text("\(model.displayName) requires a minimum of \(model.minRAMGB) GB RAM and \(model.sizeFormatted) of storage. This model exceeds the hardware capabilities of most iOS devices and is unavailable for download.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(10)
-                .background(Color.orange.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            } else {
-                switch status {
-                case .notDownloaded:
-                    Button {
-                        isDownloadInitiating = true
-                        onDownload()
-                    } label: {
-                        HStack(spacing: 8) {
-                            if isDownloadInitiating {
-                                ProgressView()
-                                    .controlSize(.small)
-                                Text("Starting…")
-                            } else {
-                                Label("Download", systemImage: "arrow.down.circle")
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(isDownloadInitiating)
-                    .onChange(of: status) { _, _ in
-                        isDownloadInitiating = false
-                    }
-
-                case .downloading(let downloadProgress):
-                    VStack(spacing: 4) {
-                        ProgressView(value: downloadProgress)
-                        HStack {
-                            Text("\(Int(downloadProgress * 100))%")
-                                .font(.caption)
-                            Spacer()
-                            Button("Cancel", action: onCancel)
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                        }
-                    }
-
-                case .verifying:
-                    HStack {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text("Verifying checksum...")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                case .ready:
-                    HStack(spacing: 12) {
-                        if !isActive {
-                            Button(action: onActivate) {
-                                Label("Load Model", systemImage: "play.circle")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
-
-                        Button(role: .destructive, action: onDelete) {
-                            Image(systemName: "trash")
-                        }
-                        .buttonStyle(.bordered)
-                    }
-
-                case .error(let message):
-                    VStack(alignment: .leading, spacing: 4) {
-                        Label(message, systemImage: "exclamationmark.triangle")
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                        Button("Retry", action: onDownload)
-                            .font(.caption)
-                            .buttonStyle(.bordered)
-                    }
-
-                case .updateAvailable:
-                    Button(action: onDownload) {
-                        Label("Update Available", systemImage: "arrow.down.circle.fill")
+        case .ready:
+            HStack(spacing: 12) {
+                if !isActive {
+                    Button(action: onActivate) {
+                        Label("Load", systemImage: "play.circle")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(.orange)
+                    .buttonStyle(.borderedProminent)
                 }
+                Button(role: .destructive, action: onDelete) {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.bordered)
             }
+
+        case .error(let message):
+            VStack(alignment: .leading, spacing: 4) {
+                Label(message, systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                Button("Retry", action: onDownload)
+                    .font(.caption)
+                    .buttonStyle(.bordered)
+            }
+
+        case .updateAvailable:
+            Button(action: onDownload) {
+                Label("Update Available", systemImage: "arrow.down.circle.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .tint(.orange)
         }
-        .padding(.vertical, 4)
     }
 
     @ViewBuilder

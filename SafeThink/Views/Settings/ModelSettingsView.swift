@@ -5,39 +5,17 @@ struct ModelSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Generation") {
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("Temperature")
-                        Spacer()
-                        Text("\(viewModel.temperature, specifier: "%.2f")")
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(value: $viewModel.temperature, in: 0...2, step: 0.05)
-                    Text("Lower = more focused, Higher = more creative")
-                        .font(.caption)
+            // Active model info
+            Section {
+                HStack {
+                    Text("Active Model")
+                    Spacer()
+                    Text(InferenceService.shared.loadedModelId?.components(separatedBy: "/").last ?? "None")
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
 
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("Top-P")
-                        Spacer()
-                        Text("\(viewModel.topP, specifier: "%.2f")")
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(value: $viewModel.topP, in: 0...1, step: 0.05)
-                }
-
-                Picker("Context Window", selection: $viewModel.contextWindowLimit) {
-                    Text("2K").tag(2048)
-                    Text("4K").tag(4096)
-                    Text("8K").tag(8192)
-                    Text("16K").tag(16384)
-                    Text("32K").tag(32768)
-                }
-
-                Picker("Response Format", selection: $viewModel.responseFormat) {
+                Picker("Response Style", selection: $viewModel.responseFormat) {
                     ForEach(ResponseFormat.allCases, id: \.self) { format in
                         Text(format.rawValue).tag(format)
                     }
@@ -46,12 +24,60 @@ struct ModelSettingsView: View {
                 Toggle("Show Tokens/sec", isOn: $viewModel.showTokensPerSec)
             }
 
-            Section("System Prompt") {
-                TextEditor(text: $viewModel.systemPrompt)
-                    .frame(minHeight: 120)
+            // Customization toggle
+            Section {
+                Toggle("Enable Customization", isOn: $viewModel.customizationEnabled.animation())
+            } footer: {
+                Text("Adjust generation parameters and system prompt for advanced control.")
+            }
 
-                Button("Reset to Default") {
-                    viewModel.systemPrompt = "You are SafeThink, a helpful, accurate, and privacy-focused AI assistant running entirely on the user's device."
+            // Advanced options — only visible when customization is on
+            if viewModel.customizationEnabled {
+                Section("Generation") {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Temperature")
+                            Spacer()
+                            Text("\(viewModel.temperature, specifier: "%.2f")")
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+                        Slider(value: $viewModel.temperature, in: 0...2, step: 0.05)
+                        Text("Lower = focused, Higher = creative")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Top-P")
+                            Spacer()
+                            Text("\(viewModel.topP, specifier: "%.2f")")
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+                        Slider(value: $viewModel.topP, in: 0...1, step: 0.05)
+                    }
+
+                    Picker("Context Window", selection: $viewModel.contextWindowLimit) {
+                        Text("2K").tag(2048)
+                        Text("4K").tag(4096)
+                        Text("8K").tag(8192)
+                        Text("16K").tag(16384)
+                        Text("32K").tag(32768)
+                    }
+                }
+
+                Section("System Prompt") {
+                    TextEditor(text: $viewModel.systemPrompt)
+                        .frame(minHeight: 100)
+                        .font(.subheadline)
+
+                    if viewModel.systemPrompt != SettingsViewModel.defaultSystemPrompt {
+                        Button("Reset to Default") {
+                            viewModel.systemPrompt = SettingsViewModel.defaultSystemPrompt
+                        }
+                    }
                 }
             }
         }

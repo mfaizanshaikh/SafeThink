@@ -3,12 +3,16 @@ import SwiftUI
 struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModel()
     @StateObject private var security = SecurityService.shared
+    @State private var exportURL: URL?
+    @State private var showShareSheet = false
+    @State private var isExporting = false
+    @State private var exportError: String?
 
     var body: some View {
         Form {
-            // General
-            Section("General") {
-                Picker("Theme", selection: $viewModel.theme) {
+            // Appearance
+            Section {
+                Picker("Appearance", selection: $viewModel.theme) {
                     ForEach(AppTheme.allCases, id: \.self) { theme in
                         Text(theme.rawValue).tag(theme)
                     }
@@ -17,71 +21,72 @@ struct SettingsView: View {
             }
 
             // AI Model
-            Section("AI Model") {
-                NavigationLink("Model Settings") {
+            Section {
+                NavigationLink {
                     ModelSettingsView(viewModel: viewModel)
-                }
-                HStack {
-                    Text("Active Model")
-                    Spacer()
-                    Text(InferenceService.shared.loadedModelId ?? "None")
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            // Voice
-            Section("Voice") {
-                Picker("Input Mode", selection: $viewModel.voiceInputMode) {
-                    ForEach(VoiceInputMode.allCases, id: \.self) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                if viewModel.voiceInputMode == .autoStop {
+                } label: {
                     HStack {
-                        Text("Auto-stop delay")
+                        Label("Model Settings", systemImage: "slider.horizontal.3")
                         Spacer()
-                        Text("\(viewModel.autoStopDuration, specifier: "%.1f")s")
+                        Text(InferenceService.shared.loadedModelId?.components(separatedBy: "/").last ?? "None")
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
-                    Slider(value: $viewModel.autoStopDuration, in: 1...5, step: 0.5)
+                }
+                NavigationLink {
+                    ModelManagerView()
+                } label: {
+                    Label("Manage Models", systemImage: "cpu")
                 }
             }
 
             // Security
-            Section("Security") {
-                NavigationLink("Security Settings") {
+            Section {
+                NavigationLink {
                     SecuritySettingsView()
-                }
-                HStack {
-                    Text(security.biometricType)
-                    Spacer()
-                    Text(security.isBiometricEnabled ? "On" : "Off")
-                        .foregroundStyle(.secondary)
-                }
-                HStack {
-                    Text("PIN Lock")
-                    Spacer()
-                    Text(security.isPINEnabled ? "On" : "Off")
-                        .foregroundStyle(.secondary)
+                } label: {
+                    HStack {
+                        Label("Security", systemImage: "lock.shield")
+                        Spacer()
+                        if security.isBiometricEnabled {
+                            Text("On")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
 
-            // Data & Privacy
-            Section("Data & Privacy") {
-                Button("Export All Chats") {
-                    viewModel.showExportSheet = true
+            // Data
+            Section {
+                Button {
+                    exportAllChats()
+                } label: {
+                    HStack {
+                        Label("Export All Chats", systemImage: "square.and.arrow.up")
+                        Spacer()
+                        if isExporting {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                    }
                 }
-                Button("Clear Chat History", role: .destructive) {
+                .disabled(isExporting)
+
+                Button(role: .destructive) {
                     viewModel.clearTarget = .chats
                     viewModel.showClearConfirmation = true
+                } label: {
+                    Label("Clear Chat History", systemImage: "trash")
                 }
-                Button("Clear Documents", role: .destructive) {
-                    viewModel.clearTarget = .documents
+
+                Button(role: .destructive) {
+                    viewModel.clearTarget = .allData
                     viewModel.showClearConfirmation = true
+                } label: {
+                    Label("Clear All Data", systemImage: "exclamationmark.triangle")
                 }
-                Button("Clear Memories", role: .destructive) {
-                    viewModel.clearTarget = .memories
-                    viewModel.showClearConfirmation = true
-                }
+            } header: {
+                Text("Data")
             }
 
             // Storage
@@ -93,9 +98,6 @@ struct SettingsView: View {
                         Text(item.1)
                             .foregroundStyle(.secondary)
                     }
-                }
-                NavigationLink("Manage Models") {
-                    ModelManagerView()
                 }
             }
 
@@ -156,7 +158,44 @@ struct SettingsView: View {
         } message: {
             Text("This cannot be undone.")
         }
+        .alert("Export Error", isPresented: .init(
+            get: { exportError != nil },
+            set: { if !$0 { exportError = nil } }
+        )) {
+            Button("OK") { exportError = nil }
+        } message: {
+            Text(exportError ?? "")
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let url = exportURL {
+                ShareSheet(activityItems: [url])
+            }
+        }
     }
+
+    private func exportAllChats() {
+        isExporting = true
+        Task {
+            do {
+                let url = try ExportService.shared.exportAllConversations(format: .json)
+                exportURL = url
+                showShareSheet = true
+            } catch {
+                exportError = error.localizedDescription
+            }
+            isExporting = false
+        }
+    }
+}
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview {

@@ -42,13 +42,21 @@ struct ConversationListView: View {
                 if !viewModel.searchQuery.isEmpty {
                     Section("Search Results") {
                         ForEach(viewModel.searchResults) { message in
-                            VStack(alignment: .leading) {
-                                Text(message.content)
-                                    .lineLimit(2)
-                                    .font(.subheadline)
-                                Text(message.createdAt, style: .relative)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                            Button {
+                                if let conversation = viewModel.conversations.first(where: { $0.id == message.conversationId }) {
+                                    viewModel.selectConversation(conversation)
+                                    onDismiss()
+                                }
+                            } label: {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(strippingThinkTags(message.content))
+                                        .lineLimit(2)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.primary)
+                                    Text(message.createdAt, format: .dateTime.month().day().hour().minute())
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
@@ -120,6 +128,18 @@ struct ConversationListView: View {
             ContentUnavailableView("No Conversations", systemImage: "bubble.left.and.bubble.right",
                 description: Text("Start a new conversation to get going"))
         }
+    }
+
+    private func strippingThinkTags(_ content: String) -> String {
+        var text = content
+        while let start = text.range(of: "<think>") {
+            if let end = text.range(of: "</think>", range: start.upperBound..<text.endIndex) {
+                text.removeSubrange(start.lowerBound..<end.upperBound)
+            } else {
+                text.removeSubrange(start.lowerBound...)
+            }
+        }
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private var filteredConversations: [Conversation] {

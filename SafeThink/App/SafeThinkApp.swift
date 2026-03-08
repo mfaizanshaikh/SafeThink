@@ -5,6 +5,7 @@ struct SafeThinkApp: App {
     @StateObject private var securityService = SecurityService.shared
     @StateObject private var inferenceService = InferenceService.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @AppStorage("theme") private var themeRaw: String = AppTheme.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -26,8 +27,7 @@ struct SafeThinkApp: App {
             Group {
                 if !hasCompletedOnboarding {
                     OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
-                } else if (securityService.isBiometricEnabled || securityService.isPINEnabled)
-                            && !securityService.isAuthenticated {
+                } else if securityService.isBiometricEnabled && !securityService.isAuthenticated {
                     LockScreenView()
                 } else {
                     ContentView()
@@ -36,6 +36,7 @@ struct SafeThinkApp: App {
             .task {
                 await loadLastActiveModel()
             }
+            .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background {
                     securityService.checkLockState()

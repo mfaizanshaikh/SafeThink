@@ -33,13 +33,6 @@ enum Constants {
         static let topKResults = 5
     }
 
-    enum Security {
-        static let pinMinLength = 4
-        static let pinMaxLength = 6
-        static let pbkdf2Iterations: UInt32 = 100_000
-        static let maxFailedAttempts = 5
-    }
-
     enum UI {
         static let maxImageDimension: CGFloat = 1280
         static let maxImagesPerTurn = 3

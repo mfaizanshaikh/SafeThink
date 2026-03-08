@@ -34,7 +34,7 @@ final class ChatViewModel: ObservableObject {
     // MARK: - Conversation Management
 
     func loadConversations() {
-        conversations = (try? databaseService.fetchConversations()) ?? []
+        conversations = (try? databaseService.fetchConversations(includeArchived: true)) ?? []
     }
 
     func createNewConversation() {
