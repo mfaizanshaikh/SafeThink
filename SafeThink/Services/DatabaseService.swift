@@ -190,7 +190,17 @@ final class DatabaseService {
 
     func deleteMessage(id: String) throws {
         try dbPool!.write { db in
+            guard let message = try Message.fetchOne(db, key: id) else { return }
+
             _ = try Message.deleteOne(db, id: id)
+            try db.execute(
+                sql: """
+                    UPDATE conversations
+                    SET messageCount = MAX(messageCount - 1, 0), updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [Date(), message.conversationId]
+            )
         }
     }
 
@@ -346,6 +356,12 @@ final class DatabaseService {
     func fetchNetworkLogs() throws -> [NetworkLog] {
         try dbPool!.read { db in
             try NetworkLog.order(Column("timestamp").desc).fetchAll(db)
+        }
+    }
+
+    func deleteAllNetworkLogs() throws {
+        try dbPool!.write { db in
+            _ = try NetworkLog.deleteAll(db)
         }
     }
 

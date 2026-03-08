@@ -1,8 +1,10 @@
 import SwiftUI
 
 struct ChatView: View {
-    @StateObject private var viewModel = ChatViewModel()
+    @ObservedObject var viewModel: ChatViewModel
+    @ObservedObject private var inferenceService = InferenceService.shared
     @StateObject private var voiceService = VoiceService.shared
+    var onNavigateToModels: (() -> Void)?
     @State private var showConversationList = false
     @State private var showAttachmentMenu = false
     @State private var editingMessageId: String?
@@ -96,10 +98,39 @@ struct ChatView: View {
 
             Divider()
 
+            // Image preview
+            if !viewModel.selectedImages.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(viewModel.selectedImages.enumerated()), id: \.offset) { index, image in
+                            ZStack(alignment: .topTrailing) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                Button {
+                                    viewModel.selectedImages.remove(at: index)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.white, Color.black.opacity(0.6))
+                                }
+                                .offset(x: 4, y: -4)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                }
+                .padding(.vertical, 4)
+            }
+
             // Input bar
             InputBarView(
                 text: $viewModel.inputText,
                 isGenerating: viewModel.isGenerating,
+                hasAttachment: !viewModel.selectedImages.isEmpty,
                 onSend: { Task { await viewModel.sendMessage() } },
                 onStop: { viewModel.stopGeneration() },
                 onAttachment: { showAttachmentMenu = true },
@@ -107,7 +138,6 @@ struct ChatView: View {
                 onTemplate: { viewModel.showTemplates = true }
             )
         }
-        .navigationTitle(viewModel.currentConversation?.title ?? "SafeThink")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -116,6 +146,20 @@ struct ChatView: View {
                 } label: {
                     Image(systemName: "sidebar.left")
                 }
+            }
+            ToolbarItem(placement: .principal) {
+                Button {
+                    onNavigateToModels?()
+                } label: {
+                    HStack(spacing: 2) {
+                        Text(activeModelDisplayName)
+                            .font(.headline)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -126,7 +170,11 @@ struct ChatView: View {
             }
         }
         .sheet(isPresented: $showConversationList) {
-            ConversationListView(viewModel: viewModel, isPresented: $showConversationList)
+            NavigationStack {
+                ConversationListView(viewModel: viewModel) {
+                    showConversationList = false
+                }
+            }
         }
         .sheet(isPresented: $showAttachmentMenu) {
             AttachmentMenuView(viewModel: viewModel)
@@ -151,9 +199,26 @@ struct ChatView: View {
                 }
             }
         }
+        .alert("No Model Loaded", isPresented: $viewModel.showNoModelAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Please go to the Models tab in the sidebar to download and load a model before chatting.")
+        }
         .onAppear {
             viewModel.loadConversations()
         }
+    }
+
+    private var activeModelDisplayName: String {
+        guard let loadedId = inferenceService.loadedModelId,
+              let model = ModelInfo.registry.first(where: {
+                  $0.downloadURL.replacingOccurrences(of: "https://huggingface.co/", with: "") == loadedId
+              }) else {
+            return "No Model"
+        }
+        return model.name
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "([a-zA-Z])([0-9])", with: "$1 $2", options: .regularExpression)
     }
 
     private func toggleVoiceInput() {
@@ -175,6 +240,6 @@ struct ChatView: View {
 
 #Preview {
     NavigationStack {
-        ChatView()
+        ChatView(viewModel: ChatViewModel())
     }
 }

@@ -27,9 +27,8 @@ final class NetworkLogService: ObservableObject {
     }
 
     func clearLogs() {
-        logs = []
-        totalRequests = 0
-        totalDataSent = 0
+        try? databaseService.deleteAllNetworkLogs()
+        loadLogs()
     }
 
     var hasNoNetworkActivity: Bool {

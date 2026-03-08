@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ConversationListView: View {
     @ObservedObject var viewModel: ChatViewModel
-    @Binding var isPresented: Bool
+    var onDismiss: () -> Void
     @State private var filter: ConversationFilter = .all
 
     enum ConversationFilter: String, CaseIterable {
@@ -12,61 +12,54 @@ struct ConversationListView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Search
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField("Search conversations...", text: $viewModel.searchQuery)
-                        .textFieldStyle(.plain)
-                        .onChange(of: viewModel.searchQuery) { _, _ in
-                            viewModel.searchMessages()
-                        }
-                }
-                .padding(10)
-                .background(Color(.systemGray6))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .padding(.horizontal)
-
-                // Filter
-                Picker("Filter", selection: $filter) {
-                    ForEach(ConversationFilter.allCases, id: \.self) { f in
-                        Text(f.rawValue).tag(f)
+        VStack(spacing: 0) {
+            // Search
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField("Search conversations...", text: $viewModel.searchQuery)
+                    .textFieldStyle(.plain)
+                    .onChange(of: viewModel.searchQuery) { _, _ in
+                        viewModel.searchMessages()
                     }
-                }
-                .pickerStyle(.segmented)
-                .padding()
+            }
+            .padding(10)
+            .background(Color(.systemGray6))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .padding(.horizontal)
 
-                // Conversations list
-                List {
-                    if !viewModel.searchQuery.isEmpty {
-                        Section("Search Results") {
-                            ForEach(viewModel.searchResults) { message in
-                                VStack(alignment: .leading) {
-                                    Text(message.content)
-                                        .lineLimit(2)
-                                        .font(.subheadline)
-                                    Text(message.createdAt, style: .relative)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
+            // Filter
+            Picker("Filter", selection: $filter) {
+                ForEach(ConversationFilter.allCases, id: \.self) { f in
+                    Text(f.rawValue).tag(f)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding()
+
+            // Conversations list
+            List {
+                if !viewModel.searchQuery.isEmpty {
+                    Section("Search Results") {
+                        ForEach(viewModel.searchResults) { message in
+                            VStack(alignment: .leading) {
+                                Text(message.content)
+                                    .lineLimit(2)
+                                    .font(.subheadline)
+                                Text(message.createdAt, style: .relative)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
                         }
-                    } else {
-                        conversationSections
                     }
-                }
-                .listStyle(.insetGrouped)
-            }
-            .navigationTitle("Conversations")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { isPresented = false }
+                } else {
+                    conversationSections
                 }
             }
+            .listStyle(.insetGrouped)
         }
+        .navigationTitle("Conversations")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     @ViewBuilder
@@ -140,7 +133,7 @@ struct ConversationListView: View {
     private func conversationRow(_ conversation: Conversation) -> some View {
         Button {
             viewModel.selectConversation(conversation)
-            isPresented = false
+            onDismiss()
         } label: {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {

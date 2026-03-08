@@ -66,6 +66,7 @@ final class ModelManagerViewModel: ObservableObject {
         do {
             try await inferenceService.loadModel(huggingFaceId: huggingFaceId)
             activeModelId = model.id
+            UserDefaults.standard.set(model.id, forKey: "lastActiveModelId")
         } catch {
             errorMessage = error.localizedDescription
         }

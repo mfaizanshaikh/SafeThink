@@ -7,11 +7,23 @@ import CommonCrypto
 final class ModelDownloadService: ObservableObject {
     static let shared = ModelDownloadService()
 
+    typealias DownloadExecutor = @Sendable (
+        ModelConfiguration,
+        @Sendable @escaping (Progress) -> Void
+    ) async throws -> URL
+
     @Published var downloadProgress: [String: Double] = [:]
     @Published var downloadStatus: [String: ModelDownloadStatus] = [:]
 
     private var downloadTasks: [String: Task<Void, Error>] = [:]
     private let networkLogService = NetworkLogService.shared
+    private var downloadExecutor: DownloadExecutor = { configuration, progressHandler in
+        try await MLXLMCommon.downloadModel(
+            hub: defaultHubApi,
+            configuration: configuration,
+            progressHandler: progressHandler
+        )
+    }
 
     private var modelsDirectory: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -27,9 +39,7 @@ final class ModelDownloadService: ObservableObject {
 
     func refreshModelStatuses() {
         for model in ModelInfo.registry {
-            let modelDir = modelsDirectory.appendingPathComponent(model.id)
-            let markerFile = modelDir.appendingPathComponent(".download_complete")
-            if FileManager.default.fileExists(atPath: markerFile.path) {
+            if hasCompletedDownload(for: model) {
                 downloadStatus[model.id] = .ready
             } else if downloadTasks[model.id] != nil {
                 // Download in progress, keep current status
@@ -62,20 +72,11 @@ final class ModelDownloadService: ObservableObject {
             dataSize: model.sizeBytes
         )
 
-        do {
-            // Use MLX's LLMModelFactory to download the model from HuggingFace.
-            // ModelConfiguration.id() triggers Hub download + caching.
-            // The model files are stored in MLX's Hub cache directory.
-            let huggingFaceId = model.downloadURL
-                .replacingOccurrences(of: "https://huggingface.co/", with: "")
-
+        let task = Task<Void, Error> {
+            let huggingFaceId = self.huggingFaceRepositoryID(for: model)
             let configuration = ModelConfiguration(id: huggingFaceId)
 
-            // loadContainer downloads (if not cached) and loads the model.
-            // We track progress via the callback, then release the container.
-            let _ = try await LLMModelFactory.shared.loadContainer(
-                configuration: configuration
-            ) { progress in
+            let downloadedDirectory = try await self.downloadExecutor(configuration) { progress in
                 Task { @MainActor in
                     let fraction = progress.fractionCompleted
                     self.downloadProgress[model.id] = fraction
@@ -83,44 +84,34 @@ final class ModelDownloadService: ObservableObject {
                 }
             }
 
-            // Mark download complete
-            let destDir = modelsDirectory.appendingPathComponent(model.id)
-            try FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true)
+            try Task.checkCancellation()
+            try self.validateDownloadedModelArtifacts(in: downloadedDirectory)
+            await MainActor.run {
+                self.downloadStatus[model.id] = .verifying
+            }
+            try self.writeDownloadMarker(for: model, huggingFaceId: huggingFaceId)
+        }
 
-            // Write a marker file indicating successful download
-            let markerFile = destDir.appendingPathComponent(".download_complete")
-            let metadata: [String: Any] = [
-                "huggingFaceId": huggingFaceId,
-                "downloadDate": ISO8601DateFormatter().string(from: Date()),
-                "version": model.version,
-                "sizeBytes": model.sizeBytes
-            ]
-            let metadataData = try JSONSerialization.data(withJSONObject: metadata)
-            try metadataData.write(to: markerFile)
+        downloadTasks[model.id] = task
+        defer { downloadTasks.removeValue(forKey: model.id) }
 
-            // Exclude model files from iCloud backup
-            var resourceValues = URLResourceValues()
-            resourceValues.isExcludedFromBackup = true
-            var mutableDestDir = destDir
-            try mutableDestDir.setResourceValues(resourceValues)
-
+        do {
+            try await task.value
             downloadStatus[model.id] = .ready
             downloadProgress[model.id] = 1.0
-
+        } catch is CancellationError {
+            resetDownloadState(for: model.id)
         } catch {
             downloadStatus[model.id] = .error(error.localizedDescription)
             downloadProgress[model.id] = 0
             throw error
         }
-
-        downloadTasks.removeValue(forKey: model.id)
     }
 
     func cancelDownload(_ modelId: String) {
         downloadTasks[modelId]?.cancel()
         downloadTasks.removeValue(forKey: modelId)
-        downloadStatus[modelId] = .notDownloaded
-        downloadProgress.removeValue(forKey: modelId)
+        resetDownloadState(for: modelId)
     }
 
     func deleteModel(_ modelId: String) throws {
@@ -136,13 +127,10 @@ final class ModelDownloadService: ObservableObject {
         // Also try to find and remove from MLX Hub cache
         let model = ModelInfo.registry.first { $0.id == modelId }
         if let model {
-            let huggingFaceId = model.downloadURL
-                .replacingOccurrences(of: "https://huggingface.co/", with: "")
-            removeHubCache(for: huggingFaceId)
+            removeCachedModelArtifacts(for: model)
         }
 
-        downloadStatus[modelId] = .notDownloaded
-        downloadProgress.removeValue(forKey: modelId)
+        resetDownloadState(for: modelId)
     }
 
     // MARK: - Storage Info
@@ -150,30 +138,9 @@ final class ModelDownloadService: ObservableObject {
     func totalModelsSize() -> Int64 {
         var total: Int64 = 0
 
-        // Check our models directory
-        if let enumerator = FileManager.default.enumerator(
-            at: modelsDirectory,
-            includingPropertiesForKeys: [.fileSizeKey]
-        ) {
-            for case let fileURL as URL in enumerator {
-                if let size = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
-                    total += Int64(size)
-                }
-            }
-        }
-
-        // Also check MLX Hub cache
-        if let hubCacheDir = hubCacheDirectory() {
-            if let enumerator = FileManager.default.enumerator(
-                at: hubCacheDir,
-                includingPropertiesForKeys: [.fileSizeKey]
-            ) {
-                for case let fileURL as URL in enumerator {
-                    if let size = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
-                        total += Int64(size)
-                    }
-                }
-            }
+        for model in ModelInfo.registry {
+            total += directorySize(at: modelDirectory(for: model.id))
+            total += directorySize(at: cachedModelDirectory(for: model))
         }
 
         return total
@@ -223,20 +190,126 @@ final class ModelDownloadService: ObservableObject {
         UserDefaults.standard.set(Date(), forKey: lastCheckKey)
     }
 
-    // MARK: - Hub Cache Management
-
-    private func hubCacheDirectory() -> URL? {
-        // MLX Hub typically caches in the app's Caches directory
-        let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
-            .appendingPathComponent("huggingface")
-            .appendingPathComponent("hub")
-        return cacheDir
+    func huggingFaceRepositoryID(for model: ModelInfo) -> String {
+        model.downloadURL.replacingOccurrences(of: "https://huggingface.co/", with: "")
     }
 
-    private func removeHubCache(for repoId: String) {
-        guard let hubCache = hubCacheDirectory() else { return }
-        let sanitizedId = repoId.replacingOccurrences(of: "/", with: "--")
-        let modelCacheDir = hubCache.appendingPathComponent("models--\(sanitizedId)")
-        try? FileManager.default.removeItem(at: modelCacheDir)
+    #if DEBUG
+    func setDownloadTaskForTesting(_ task: Task<Void, Error>?, modelId: String) {
+        downloadTasks[modelId] = task
+    }
+
+    func setDownloadExecutorForTesting(_ downloadExecutor: @escaping DownloadExecutor) {
+        self.downloadExecutor = downloadExecutor
+    }
+
+    func resetDownloadExecutorForTesting() {
+        downloadExecutor = { configuration, progressHandler in
+            try await MLXLMCommon.downloadModel(
+                hub: defaultHubApi,
+                configuration: configuration,
+                progressHandler: progressHandler
+            )
+        }
+    }
+
+    func cachedModelDirectoryForTesting(_ model: ModelInfo) -> URL {
+        cachedModelDirectory(for: model)
+    }
+    #endif
+
+    private func writeDownloadMarker(for model: ModelInfo, huggingFaceId: String) throws {
+        let destDir = modelsDirectory.appendingPathComponent(model.id)
+        try FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true)
+
+        let markerFile = destDir.appendingPathComponent(".download_complete")
+        let metadata: [String: Any] = [
+            "huggingFaceId": huggingFaceId,
+            "downloadDate": ISO8601DateFormatter().string(from: Date()),
+            "version": model.version,
+            "sizeBytes": model.sizeBytes
+        ]
+        let metadataData = try JSONSerialization.data(withJSONObject: metadata)
+        try metadataData.write(to: markerFile)
+
+        var resourceValues = URLResourceValues()
+        resourceValues.isExcludedFromBackup = true
+        var mutableDestDir = destDir
+        try mutableDestDir.setResourceValues(resourceValues)
+    }
+
+    private func resetDownloadState(for modelId: String) {
+        downloadStatus[modelId] = .notDownloaded
+        downloadProgress.removeValue(forKey: modelId)
+    }
+
+    private func hasCompletedDownload(for model: ModelInfo) -> Bool {
+        let markerFile = modelDirectory(for: model.id).appendingPathComponent(".download_complete")
+        guard FileManager.default.fileExists(atPath: markerFile.path) else {
+            return false
+        }
+
+        return hasValidModelArtifacts(in: cachedModelDirectory(for: model))
+    }
+
+    private func cachedModelDirectory(for model: ModelInfo) -> URL {
+        ModelConfiguration(id: huggingFaceRepositoryID(for: model)).modelDirectory(hub: defaultHubApi)
+    }
+
+    private func removeCachedModelArtifacts(for model: ModelInfo) {
+        let cachedDirectory = cachedModelDirectory(for: model)
+        try? FileManager.default.removeItem(at: cachedDirectory)
+    }
+
+    private func validateDownloadedModelArtifacts(in directory: URL) throws {
+        guard hasValidModelArtifacts(in: directory) else {
+            throw NSError(
+                domain: "ModelDownloadService",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Downloaded model is missing required MLX artifacts."]
+            )
+        }
+    }
+
+    private func hasValidModelArtifacts(in directory: URL) -> Bool {
+        var hasConfig = false
+        var hasWeights = false
+
+        guard let enumerator = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: nil) else {
+            return false
+        }
+
+        for case let fileURL as URL in enumerator {
+            if fileURL.lastPathComponent == "config.json" {
+                hasConfig = true
+            } else if fileURL.pathExtension == "safetensors" {
+                hasWeights = true
+            }
+
+            if hasConfig && hasWeights {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    private func directorySize(at directory: URL) -> Int64 {
+        guard FileManager.default.fileExists(atPath: directory.path) else {
+            return 0
+        }
+
+        var total: Int64 = 0
+        if let enumerator = FileManager.default.enumerator(
+            at: directory,
+            includingPropertiesForKeys: [.fileSizeKey]
+        ) {
+            for case let fileURL as URL in enumerator {
+                if let size = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                    total += Int64(size)
+                }
+            }
+        }
+        return total
     }
 }

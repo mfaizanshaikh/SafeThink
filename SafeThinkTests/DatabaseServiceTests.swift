@@ -52,6 +52,21 @@ final class DatabaseServiceTests: XCTestCase {
         XCTAssertEqual(messages.count, 0)
     }
 
+    func testDeleteMessageUpdatesConversationCount() throws {
+        let conversation = Conversation(modelId: "test")
+        try sut.createConversation(conversation)
+
+        let msg1 = Message(conversationId: conversation.id, role: .user, content: "Hello")
+        let msg2 = Message(conversationId: conversation.id, role: .assistant, content: "Hi")
+        try sut.createMessage(msg1)
+        try sut.createMessage(msg2)
+
+        try sut.deleteMessage(id: msg2.id)
+
+        let fetched = try sut.fetchConversations()
+        XCTAssertEqual(fetched.first?.messageCount, 1)
+    }
+
     func testFullTextSearch() throws {
         let conversation = Conversation(modelId: "test")
         try sut.createConversation(conversation)
@@ -83,6 +98,15 @@ final class DatabaseServiceTests: XCTestCase {
         let logs = try sut.fetchNetworkLogs()
         XCTAssertEqual(logs.count, 1)
         XCTAssertEqual(logs.first?.destination, "api.duckduckgo.com")
+    }
+
+    func testDeleteAllNetworkLogs() throws {
+        let log = NetworkLog(destination: "api.duckduckgo.com", purpose: "Web search", dataSize: 1024)
+        try sut.logNetworkRequest(log)
+
+        try sut.deleteAllNetworkLogs()
+
+        XCTAssertEqual(try sut.fetchNetworkLogs().count, 0)
     }
 
     func testConversationCount() throws {

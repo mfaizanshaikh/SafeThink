@@ -8,14 +8,25 @@ final class SecurityService: ObservableObject {
     static let shared = SecurityService()
 
     @Published var isAuthenticated = false
-    @Published var isBiometricEnabled = false
-    @Published var isPINEnabled = false
-    @Published var lockTimeout: LockTimeout = .immediate
-    @Published var selfDestructEnabled = false
-    @Published var selfDestructAttempts = 10
+    @Published var isBiometricEnabled = false {
+        didSet { persistSettingsIfNeeded() }
+    }
+    @Published var isPINEnabled = false {
+        didSet { persistSettingsIfNeeded() }
+    }
+    @Published var lockTimeout: LockTimeout = .immediate {
+        didSet { persistSettingsIfNeeded() }
+    }
+    @Published var selfDestructEnabled = false {
+        didSet { persistSettingsIfNeeded() }
+    }
+    @Published var selfDestructAttempts = 10 {
+        didSet { persistSettingsIfNeeded() }
+    }
 
     private var failedAttempts = 0
     private var lastAuthTime: Date?
+    private var isLoadingSettings = false
 
     enum LockTimeout: Int, CaseIterable {
         case immediate = 0
@@ -244,7 +255,15 @@ final class SecurityService: ObservableObject {
         UserDefaults.standard.set(selfDestructAttempts, forKey: "security_selfdestruct_attempts")
     }
 
+    private func persistSettingsIfNeeded() {
+        guard !isLoadingSettings else { return }
+        saveSettings()
+    }
+
     private func loadSettings() {
+        isLoadingSettings = true
+        defer { isLoadingSettings = false }
+
         isBiometricEnabled = UserDefaults.standard.bool(forKey: "security_biometric")
         isPINEnabled = UserDefaults.standard.bool(forKey: "security_pin")
         let timeoutRaw = UserDefaults.standard.integer(forKey: "security_timeout")

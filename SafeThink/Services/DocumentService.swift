@@ -92,16 +92,20 @@ final class DocumentService: ObservableObject {
     func processDocument(url: URL) async throws -> String {
         isProcessing = true
         processingProgress = 0
-        defer { isProcessing = false }
+        defer {
+            isProcessing = false
+            processingProgress = 0
+        }
 
         // 1. Copy to documents directory
         let destURL = documentsDirectory.appendingPathComponent(url.lastPathComponent)
-        if !FileManager.default.fileExists(atPath: destURL.path) {
+        if url.standardizedFileURL != destURL.standardizedFileURL,
+           !FileManager.default.fileExists(atPath: destURL.path) {
             try FileManager.default.copyItem(at: url, to: destURL)
         }
 
         // 2. Extract text
-        let text = try extractText(from: url)
+        let text = try validatedExtractedText(from: destURL)
         processingProgress = 0.3
 
         // 3. Chunk text
@@ -176,9 +180,17 @@ final class DocumentService: ObservableObject {
         }
         return actions
     }
+
+    private func validatedExtractedText(from url: URL) throws -> String {
+        let text = try extractText(from: url)
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw DocumentError.extractionFailed
+        }
+        return text
+    }
 }
 
-enum DocumentError: Error, LocalizedError {
+enum DocumentError: Error, LocalizedError, Equatable {
     case unsupportedFormat(String)
     case extractionFailed
 

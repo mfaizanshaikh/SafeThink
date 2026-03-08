@@ -1,41 +1,55 @@
 import SwiftUI
 
+enum SidebarItem: String, CaseIterable, Identifiable {
+    case conversations = "Conversations"
+    case chat = "Chat"
+    case models = "Models"
+    case privacy = "Privacy"
+    case settings = "Settings"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .conversations: "text.bubble"
+        case .chat: "bubble.left.and.bubble.right"
+        case .models: "cpu"
+        case .privacy: "lock.shield"
+        case .settings: "gearshape"
+        }
+    }
+}
+
 struct ContentView: View {
-    @State private var selectedTab = 0
+    @StateObject private var chatViewModel = ChatViewModel()
+    @State private var selectedItem: SidebarItem? = .chat
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            NavigationStack {
-                ChatView()
+        NavigationSplitView {
+            List(SidebarItem.allCases, selection: $selectedItem) { item in
+                Label(item.rawValue, systemImage: item.icon)
+                    .tag(item)
             }
-            .tabItem {
-                Label("Chat", systemImage: "bubble.left.and.bubble.right")
+            .navigationTitle("SafeThink")
+        } detail: {
+            switch selectedItem {
+            case .conversations:
+                NavigationStack {
+                    ConversationListView(viewModel: chatViewModel) {
+                        selectedItem = .chat
+                    }
+                }
+            case .chat:
+                NavigationStack { ChatView(viewModel: chatViewModel) { selectedItem = .models } }
+            case .models:
+                NavigationStack { ModelManagerView() }
+            case .privacy:
+                NavigationStack { PrivacyDashboardView() }
+            case .settings:
+                NavigationStack { SettingsView() }
+            case nil:
+                NavigationStack { ChatView(viewModel: chatViewModel) { selectedItem = .models } }
             }
-            .tag(0)
-
-            NavigationStack {
-                ModelManagerView()
-            }
-            .tabItem {
-                Label("Models", systemImage: "cpu")
-            }
-            .tag(1)
-
-            NavigationStack {
-                PrivacyDashboardView()
-            }
-            .tabItem {
-                Label("Privacy", systemImage: "lock.shield")
-            }
-            .tag(2)
-
-            NavigationStack {
-                SettingsView()
-            }
-            .tabItem {
-                Label("Settings", systemImage: "gearshape")
-            }
-            .tag(3)
         }
     }
 }

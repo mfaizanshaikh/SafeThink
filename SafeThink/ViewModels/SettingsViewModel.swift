@@ -63,6 +63,8 @@ final class SettingsViewModel: ObservableObject {
         systemPrompt = defaults.string(forKey: "systemPrompt") ?? "You are SafeThink, a helpful, accurate, and privacy-focused AI assistant running entirely on the user's device."
         responseFormat = ResponseFormat(rawValue: defaults.string(forKey: "responseFormat") ?? "Normal") ?? .normal
         showTokensPerSec = defaults.object(forKey: "showTokSec") as? Bool ?? true
+        voiceInputMode = VoiceInputMode(rawValue: defaults.string(forKey: "voiceInputMode") ?? VoiceInputMode.autoStop.rawValue) ?? .autoStop
+        autoStopDuration = defaults.object(forKey: "autoStopDuration") as? Double ?? 2.0
     }
 
     func saveSettings() {
@@ -74,6 +76,8 @@ final class SettingsViewModel: ObservableObject {
         defaults.set(systemPrompt, forKey: "systemPrompt")
         defaults.set(responseFormat.rawValue, forKey: "responseFormat")
         defaults.set(showTokensPerSec, forKey: "showTokSec")
+        defaults.set(voiceInputMode.rawValue, forKey: "voiceInputMode")
+        defaults.set(autoStopDuration, forKey: "autoStopDuration")
     }
 
     func clearData(target: ClearTarget) {

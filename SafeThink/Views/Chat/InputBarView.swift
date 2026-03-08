@@ -3,6 +3,7 @@ import SwiftUI
 struct InputBarView: View {
     @Binding var text: String
     let isGenerating: Bool
+    var hasAttachment: Bool = false
     let onSend: () -> Void
     let onStop: () -> Void
     let onAttachment: () -> Void
@@ -55,9 +56,9 @@ struct InputBarView: View {
                 Button(action: onSend) {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : Color.accentColor)
+                        .foregroundStyle(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !hasAttachment ? Color.gray : Color.accentColor)
                 }
-                .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !hasAttachment)
             }
         }
         .padding(.horizontal, 12)
