@@ -8,6 +8,7 @@ final class SecurityService: ObservableObject {
     static let shared = SecurityService()
 
     @Published var isAuthenticated = false
+    @Published private(set) var isAuthenticating = false
     @Published var isBiometricEnabled = false {
         didSet { persistSettingsIfNeeded() }
     }
@@ -53,6 +54,10 @@ final class SecurityService: ObservableObject {
     // MARK: - Biometric Auth
 
     func authenticateWithBiometrics() async -> Bool {
+        guard !isAuthenticating else { return false }
+        isAuthenticating = true
+        defer { isAuthenticating = false }
+
         let context = LAContext()
         var error: NSError?
 

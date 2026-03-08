@@ -94,7 +94,7 @@ struct LockScreenView: View {
         }
         .padding()
         .onAppear {
-            if security.isBiometricEnabled {
+            if security.isBiometricEnabled && !security.isAuthenticating {
                 Task {
                     _ = await security.authenticateWithBiometrics()
                 }

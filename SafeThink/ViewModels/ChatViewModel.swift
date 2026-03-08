@@ -40,11 +40,10 @@ final class ChatViewModel: ObservableObject {
     func createNewConversation() {
         let modelId = inferenceService.loadedModelId ?? "unknown"
         let conversation = Conversation(modelId: modelId)
-        try? databaseService.createConversation(conversation)
+        // Don't persist to DB yet — wait until the first message is sent
         currentConversation = conversation
         messages = []
         streamingText = ""
-        loadConversations()
     }
 
     func selectConversation(_ conversation: Conversation) {
@@ -143,6 +142,11 @@ final class ChatViewModel: ObservableObject {
             }
 
             selectedImages.removeAll()
+        }
+
+        // Persist conversation to DB on first message (deferred from createNewConversation)
+        if messages.isEmpty {
+            try? databaseService.createConversation(conversation)
         }
 
         // Save user message
@@ -304,6 +308,11 @@ final class ChatViewModel: ObservableObject {
     // MARK: - Web Search
 
     private func performWebSearch(query: String, in conversation: Conversation) async {
+        // Persist conversation to DB on first message if needed
+        if messages.isEmpty {
+            try? databaseService.createConversation(conversation)
+        }
+
         let userMessage = Message(conversationId: conversation.id, role: .user, content: "/search \(query)")
         try? databaseService.createMessage(userMessage)
         messages.append(userMessage)

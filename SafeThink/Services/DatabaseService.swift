@@ -142,7 +142,9 @@ final class DatabaseService {
 
     func fetchConversations(includeArchived: Bool = false) throws -> [Conversation] {
         try dbPool!.read { db in
-            var request = Conversation.order(Column("updatedAt").desc)
+            var request = Conversation
+                .filter(Column("messageCount") > 0)
+                .order(Column("updatedAt").desc)
             if !includeArchived {
                 request = request.filter(Column("isArchived") == false)
             }

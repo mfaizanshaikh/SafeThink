@@ -37,13 +37,8 @@ struct SafeThinkApp: App {
                 await loadLastActiveModel()
             }
             .onChange(of: scenePhase) { _, newPhase in
-                switch newPhase {
-                case .background:
+                if newPhase == .background {
                     securityService.checkLockState()
-                case .active:
-                    securityService.checkLockState()
-                default:
-                    break
                 }
             }
         }
