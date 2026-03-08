@@ -13,13 +13,25 @@ struct SafeThinkApp: App {
     }
 
     private func loadLastActiveModel() async {
-        guard !inferenceService.isModelLoaded,
-              let lastModelId = UserDefaults.standard.string(forKey: "lastActiveModelId"),
-              let model = ModelInfo.registry.first(where: { $0.id == lastModelId }),
-              ModelDownloadService.shared.isModelDownloaded(model.id) else { return }
+        guard !inferenceService.isModelLoaded else { return }
 
-        let fileURL = ModelDownloadService.shared.modelFileURL(for: model)
+        let downloadService = ModelDownloadService.shared
+
+        // Try last active model first, then fall back to any downloaded model
+        let model: ModelInfo? = {
+            if let lastModelId = UserDefaults.standard.string(forKey: "lastActiveModelId"),
+               let m = ModelInfo.registry.first(where: { $0.id == lastModelId }),
+               downloadService.isModelDownloaded(m.id) {
+                return m
+            }
+            return ModelInfo.registry.first { downloadService.isModelDownloaded($0.id) }
+        }()
+
+        guard let model else { return }
+
+        let fileURL = downloadService.modelFileURL(for: model)
         try? await inferenceService.loadModel(from: fileURL)
+        UserDefaults.standard.set(model.id, forKey: "lastActiveModelId")
     }
 
     var body: some Scene {

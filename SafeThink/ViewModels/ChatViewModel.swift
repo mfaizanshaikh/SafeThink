@@ -27,6 +27,8 @@ final class ChatViewModel: ObservableObject {
     private let documentService = DocumentService.shared
     private let imageService = ImageService.shared
 
+    static let aiDisclaimer = "AI-generated responses may be inaccurate. Verify important information independently."
+
     var contextUsage: String {
         "\(currentTokenCount) / \(maxTokenCount) tokens"
     }
@@ -92,7 +94,7 @@ final class ChatViewModel: ObservableObject {
 
     func sendMessage() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty || !selectedImages.isEmpty else { return }
+        guard !text.isEmpty || !selectedImages.isEmpty || attachedDocumentURL != nil else { return }
 
         guard inferenceService.isModelLoaded else {
             showNoModelAlert = true
@@ -144,6 +146,20 @@ final class ChatViewModel: ObservableObject {
             selectedImages.removeAll()
         }
 
+        // Handle document attachment
+        var documentText: String?
+        var documentName: String?
+        if let docURL = attachedDocumentURL {
+            let accessed = docURL.startAccessingSecurityScopedResource()
+            defer { if accessed { docURL.stopAccessingSecurityScopedResource() } }
+            documentName = docURL.lastPathComponent
+            documentText = try? documentService.extractText(from: docURL)
+            if text.isEmpty {
+                userContent = "[Document: \(documentName ?? "document")]"
+            }
+            attachedDocumentURL = nil
+        }
+
         // Persist conversation to DB on first message (deferred from createNewConversation)
         if messages.isEmpty {
             try? databaseService.createConversation(conversation)
@@ -158,32 +174,15 @@ final class ChatViewModel: ObservableObject {
         // Build messages for LLM
         var llmMessages = await buildLLMMessages(userQuery: text)
 
-        // Image attached but no recognized edit → show available operations directly
-        if attachedImage != nil && editedImagePath == nil {
-            let reply = """
-            I can't perform that specific edit. Here are the image edits I can do:
-
-            - **Brighten / Darken** — adjust brightness
-            - **Contrast / Sharpen** — increase contrast
-            - **Sepia / Vintage / Retro** — warm tone filter
-            - **Black & White / Monochrome** — grayscale
-            - **Vivid / Vibrant / Colorful** — boost colors
-            - **Blur / Soften / Smooth** — gaussian blur
-            - **Enhance / Improve / Fix** — auto-enhance
-            - **Rotate / Turn** — rotate 90°
-            - **Remove background / Cut out** — isolate subject
-
-            Try describing your edit using one of these keywords.
-            """
-            let assistantMessage = Message(
-                conversationId: conversation.id,
-                role: .assistant,
-                content: reply
-            )
-            try? databaseService.createMessage(assistantMessage)
-            messages.append(assistantMessage)
-            loadConversations()
-            return
+        // Add document context
+        if let docText = documentText, let docName = documentName {
+            let maxChars = 6000
+            let truncated = String(docText.prefix(maxChars))
+            var contextMsg = "The user has attached a document named \"\(docName)\". Here is the document content:\n\n\(truncated)"
+            if docText.count > maxChars {
+                contextMsg += "\n\n[Document truncated — showing first \(maxChars) characters of \(docText.count) total]"
+            }
+            llmMessages.insert(["role": "system", "content": contextMsg], at: 1)
         }
 
         // Add image edit context to system prompt
@@ -195,11 +194,12 @@ final class ChatViewModel: ObservableObject {
 
         // Handle web search if enabled
         if isWebSearchEnabled {
-            if let searchContext = try? await searchService.search(query: text) {
-                let searchText = searchContext.map { "- \($0.title): \($0.snippet)" }.joined(separator: "\n")
+            if let searchResults = try? await searchService.search(query: text), !searchResults.isEmpty {
+                let searchText = searchResults.map { "- \($0.title): \($0.snippet)" }.joined(separator: "\n")
+                let insertIndex = llmMessages.count > 1 ? 1 : 0
                 llmMessages.insert(
                     ["role": "system", "content": "Web search results for context:\n\(searchText)"],
-                    at: 1
+                    at: insertIndex
                 )
             }
             isWebSearchEnabled = false

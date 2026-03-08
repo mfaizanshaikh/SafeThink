@@ -66,7 +66,8 @@ final class PrivacyDashboardViewModel: ObservableObject {
         perms.append(PermissionStatus(name: "Speech", icon: "waveform", isGranted: speechStatus == .authorized))
 
         let photoStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        perms.append(PermissionStatus(name: "Photos", icon: "photo", isGranted: photoStatus == .authorized))
+        perms.append(PermissionStatus(name: "Photos", icon: "photo",
+            isGranted: photoStatus == .authorized || photoStatus == .limited))
 
         perms.append(PermissionStatus(name: "Face ID", icon: "faceid",
             isGranted: SecurityService.shared.isBiometricEnabled))

@@ -67,7 +67,7 @@ struct OnboardingView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14))
             }
             .padding(.horizontal, 32)
-            .padding(.bottom, 20)
+            .padding(.bottom, 60)
         }
     }
 
@@ -134,7 +134,7 @@ struct OnboardingView: View {
                 }
             }
             .padding(.horizontal, 32)
-            .padding(.bottom, 20)
+            .padding(.bottom, 60)
         }
     }
 
@@ -204,7 +204,7 @@ struct OnboardingView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14))
             }
             .padding(.horizontal, 32)
-            .padding(.bottom, 20)
+            .padding(.bottom, 60)
         }
     }
 }

@@ -118,12 +118,7 @@ final class ImageService: ObservableObject {
         return UIImage(cgImage: cgResult)
     }
 
-    // MARK: - Crop & Rotate
-
-    func crop(_ image: UIImage, rect: CGRect) -> UIImage? {
-        guard let cgImage = image.cgImage?.cropping(to: rect) else { return nil }
-        return UIImage(cgImage: cgImage)
-    }
+    // MARK: - Rotate
 
     func rotate(_ image: UIImage, degrees: CGFloat) -> UIImage {
         let radians = degrees * .pi / 180

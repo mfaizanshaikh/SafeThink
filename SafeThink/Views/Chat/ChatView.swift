@@ -127,11 +127,56 @@ struct ChatView: View {
                 .padding(.vertical, 4)
             }
 
+            // Document preview
+            if viewModel.attachedDocumentURL != nil {
+                HStack(spacing: 8) {
+                    Image(systemName: "doc.fill")
+                        .foregroundStyle(.blue)
+                    Text(viewModel.attachedDocumentURL?.lastPathComponent ?? "Document")
+                        .font(.caption)
+                        .lineLimit(1)
+                    Spacer()
+                    Button {
+                        viewModel.attachedDocumentURL = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color(.systemGray6))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, 12)
+            }
+
+            // Web search indicator
+            if viewModel.isWebSearchEnabled {
+                HStack(spacing: 8) {
+                    Image(systemName: "globe")
+                        .foregroundStyle(.blue)
+                    Text("Web search enabled for next message")
+                        .font(.caption)
+                    Spacer()
+                    Button {
+                        viewModel.isWebSearchEnabled = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color(.systemGray6))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, 12)
+            }
+
             // Input bar
             InputBarView(
                 text: $viewModel.inputText,
                 isGenerating: viewModel.isGenerating,
-                hasAttachment: !viewModel.selectedImages.isEmpty,
+                hasAttachment: !viewModel.selectedImages.isEmpty || viewModel.attachedDocumentURL != nil || viewModel.isWebSearchEnabled,
                 onSend: { Task { await viewModel.sendMessage() } },
                 onStop: { viewModel.stopGeneration() },
                 onAttachment: { showAttachmentMenu = true },

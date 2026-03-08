@@ -54,6 +54,13 @@ struct AttachmentMenuView: View {
                     Button("Cancel") { dismiss() }
                 }
             }
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraPicker { image in
+                    viewModel.selectedImages.append(image)
+                    dismiss()
+                }
+                .ignoresSafeArea()
+            }
             .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
             .onChange(of: selectedPhotoItem) { _, item in
                 guard let item else { return }
@@ -71,6 +78,42 @@ struct AttachmentMenuView: View {
                     dismiss()
                 }
             }
+        }
+    }
+}
+
+// MARK: - Camera Picker
+
+struct CameraPicker: UIViewControllerRepresentable {
+    let onImageCaptured: (UIImage) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(onImageCaptured: onImageCaptured) }
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let onImageCaptured: (UIImage) -> Void
+
+        init(onImageCaptured: @escaping (UIImage) -> Void) {
+            self.onImageCaptured = onImageCaptured
+        }
+
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                onImageCaptured(image)
+            }
+            picker.dismiss(animated: true)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
         }
     }
 }

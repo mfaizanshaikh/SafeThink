@@ -27,6 +27,8 @@
 		46ADBFA9EE6B8F8B00F8DA0D /* DatabaseServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8987C270C395A6256227193 /* DatabaseServiceTests.swift */; };
 		4961F5AB90C217236E95781B /* SearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7888F05C0EBFAE2E42AD73E4 /* SearchService.swift */; };
 		4AB6364AB8F12B1A80DEBA14 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = D1752CFC60C794E1F65A2FDC /* GRDB */; };
+		4B41ED406ED05AE6C92CE7AE /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 321B6404066EB8BBAF898B1D /* PrivacyInfo.xcprivacy */; };
+		52E06E0E3C81E306C453EFBD /* Package.resolved in Resources */ = {isa = PBXBuildFile; fileRef = 4E4980005B98FC88EA14C4E3 /* Package.resolved */; };
 		53D249E2643C5AC518B4453E /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6E0164ED51BBD888009F2AE /* ExportService.swift */; };
 		562FAC81BF44C4122C509526 /* SecurityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60FB2E7D610D143FA3779600 /* SecurityService.swift */; };
 		5824074C90D4BCBE7022892D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FAD69432E6F93485D2746269 /* Assets.xcassets */; };
@@ -92,11 +94,13 @@
 		24CAA6BE9F0245876D38B511 /* NetworkLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkLog.swift; sourceTree = "<group>"; };
 		2F7009AA8B4198B70FB7DBF9 /* String+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Extensions.swift"; sourceTree = "<group>"; };
 		31F0C242F5A91E53CA2425C7 /* ExportServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportServiceTests.swift; sourceTree = "<group>"; };
+		321B6404066EB8BBAF898B1D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		35D7ECB42665FA7CD2C3C563 /* DocumentServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentServiceTests.swift; sourceTree = "<group>"; };
 		3A80AB0E6DF5435B60C0EABA /* MemoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryService.swift; sourceTree = "<group>"; };
 		3C7ACF1750E587F0D5E25CEF /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		489C0AE22E86FA424EA9DF42 /* SafeThink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SafeThink.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		489C0AE22E86FA424EA9DF42 /* SafeThink.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SafeThink.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		49A83622DD29A33E85794FCD /* VoiceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceService.swift; sourceTree = "<group>"; };
+		4E4980005B98FC88EA14C4E3 /* Package.resolved */ = {isa = PBXFileReference; path = Package.resolved; sourceTree = "<group>"; };
 		51FE0C698FE14051AB9C4DC1 /* InputBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputBarView.swift; sourceTree = "<group>"; };
 		5A0C194792F983CA85F530F8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		60FB2E7D610D143FA3779600 /* SecurityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityService.swift; sourceTree = "<group>"; };
@@ -242,6 +246,7 @@
 		4F0CFB9B5596FF824895D88E /* SafeThink */ = {
 			isa = PBXGroup;
 			children = (
+				4E4980005B98FC88EA14C4E3 /* Package.resolved */,
 				8872C5AF2E4050B857E711CB /* App */,
 				0780FED40AF367E3E9755D39 /* Models */,
 				70DA44FE90190BCC9E69446D /* Resources */,
@@ -266,6 +271,7 @@
 			children = (
 				FAD69432E6F93485D2746269 /* Assets.xcassets */,
 				F4632A71FF1C9C27545DDFEF /* DefaultSystemPrompt.txt */,
+				321B6404066EB8BBAF898B1D /* PrivacyInfo.xcprivacy */,
 				E9B5B58E4002379EF40C1729 /* SafeThink.entitlements */,
 			);
 			path = Resources;
@@ -423,6 +429,11 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					36955889912272EBBD148084 = {
+						DevelopmentTeam = KJS5669LU6;
+					};
+				};
 			};
 			buildConfigurationList = 840BE4C9027E090494163009 /* Build configuration list for PBXProject "SafeThink" */;
 			developmentRegion = en;
@@ -434,10 +445,10 @@
 			mainGroup = 3E3687CF10E8CA13345140BA;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				32554DE8FD78D25322625AA9 /* XCRemoteSwiftPackageReference "GRDB" */,
+				32554DE8FD78D25322625AA9 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 				F917DB9D47161048F898F9B0 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				B08D16506D215F3DD2B1970D /* XCRemoteSwiftPackageReference "Splash" */,
-				9418C1F1F8A5F0D03BD06671 /* XCRemoteSwiftPackageReference "llama" */,
+				9418C1F1F8A5F0D03BD06671 /* XCRemoteSwiftPackageReference "llama.swift" */,
 				114A81150C2A92F688B8619A /* XCRemoteSwiftPackageReference "swift-embeddings" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -458,6 +469,8 @@
 			files = (
 				5824074C90D4BCBE7022892D /* Assets.xcassets in Resources */,
 				E0EC67532EC1FB08A4F043EF /* DefaultSystemPrompt.txt in Resources */,
+				52E06E0E3C81E306C453EFBD /* Package.resolved in Resources */,
+				4B41ED406ED05AE6C92CE7AE /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -554,7 +567,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.safethink.app.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mfaizanshaikh.safethink.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SafeThink.app/SafeThink";
@@ -570,6 +583,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = KJS5669LU6;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "SafeThink/.build/index-build/artifacts/swift-sentencepiece/Sentencepiece/sentencepiece.xcframework/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = SafeThink;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "SafeThink needs camera access to capture images for AI analysis. All processing happens on-device.";
@@ -583,7 +597,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.safethink.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mfaizanshaikh.safethink;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -655,6 +669,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = KJS5669LU6;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "SafeThink/.build/index-build/artifacts/swift-sentencepiece/Sentencepiece/sentencepiece.xcframework/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = SafeThink;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "SafeThink needs camera access to capture images for AI analysis. All processing happens on-device.";
@@ -668,7 +683,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.safethink.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mfaizanshaikh.safethink;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -684,7 +699,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.safethink.app.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mfaizanshaikh.safethink.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SafeThink.app/SafeThink";
@@ -796,7 +811,7 @@
 				minimumVersion = 0.0.8;
 			};
 		};
-		32554DE8FD78D25322625AA9 /* XCRemoteSwiftPackageReference "GRDB" */ = {
+		32554DE8FD78D25322625AA9 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
 			requirement = {
@@ -804,7 +819,7 @@
 				minimumVersion = 7.4.1;
 			};
 		};
-		9418C1F1F8A5F0D03BD06671 /* XCRemoteSwiftPackageReference "llama" */ = {
+		9418C1F1F8A5F0D03BD06671 /* XCRemoteSwiftPackageReference "llama.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/mattt/llama.swift";
 			requirement = {
@@ -848,12 +863,12 @@
 		};
 		D1752CFC60C794E1F65A2FDC /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 32554DE8FD78D25322625AA9 /* XCRemoteSwiftPackageReference "GRDB" */;
+			package = 32554DE8FD78D25322625AA9 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
 		};
 		D7D71397C9B72521E0121615 /* LlamaSwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 9418C1F1F8A5F0D03BD06671 /* XCRemoteSwiftPackageReference "llama" */;
+			package = 9418C1F1F8A5F0D03BD06671 /* XCRemoteSwiftPackageReference "llama.swift" */;
 			productName = LlamaSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
