@@ -201,6 +201,13 @@ final class InferenceService: ObservableObject {
                 var tokens = Self.tokenize(vocab: vocab!, text: prompt)
                 guard !tokens.isEmpty else { return }
 
+                // Truncate prompt if it exceeds context budget (n_ctx - maxTokens for generation)
+                let nCtx = Int(llama_n_ctx(ctx))
+                let maxPromptTokens = nCtx - min(maxT, nCtx / 2)
+                if tokens.count > maxPromptTokens {
+                    tokens = Array(tokens.suffix(maxPromptTokens))
+                }
+
                 // Prefill: decode the prompt.
                 let prefillOK = tokens.withUnsafeMutableBufferPointer { buf in
                     let batch = llama_batch_get_one(buf.baseAddress, Int32(buf.count))

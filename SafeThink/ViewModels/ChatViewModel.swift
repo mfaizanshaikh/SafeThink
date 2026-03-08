@@ -181,13 +181,17 @@ final class ChatViewModel: ObservableObject {
         // Build messages for LLM
         var llmMessages = await buildLLMMessages(userQuery: text)
 
-        // Add document context
+        // Add document context (limit to ~750 tokens to fit 4096 context window)
         if let docText = documentText, let docName = documentName {
-            let maxChars = 6000
+            let maxChars = 3000
             let truncated = String(docText.prefix(maxChars))
             var contextMsg = "The user has attached a document named \"\(docName)\". Here is the document content:\n\n\(truncated)"
             if docText.count > maxChars {
                 contextMsg += "\n\n[Document truncated — showing first \(maxChars) characters of \(docText.count) total]"
+            }
+            // When document context is present, trim conversation history to leave room
+            while llmMessages.count > 3 {
+                llmMessages.remove(at: 1)
             }
             llmMessages.insert(["role": "system", "content": contextMsg], at: 1)
         }
