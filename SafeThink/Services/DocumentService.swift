@@ -144,43 +144,6 @@ final class DocumentService: ObservableObject {
         return documentId
     }
 
-    func retrieveRelevantChunks(query: String, documentId: String, topK: Int = 5) async throws -> [DocumentChunk] {
-        guard embeddingService.isModelLoaded else {
-            // Fallback: return first few chunks when embedding model isn't loaded
-            return Array(try databaseService.fetchChunks(documentId: documentId).prefix(topK))
-        }
-
-        let queryEmbedding = try await embeddingService.embed(text: query)
-
-        // Fetch chunks with their stored embeddings
-        let chunksWithEmbeddings = try databaseService.fetchChunksWithEmbeddings(documentId: documentId)
-
-        var scored: [(chunk: DocumentChunk, score: Float)] = []
-        for (chunk, embedding) in chunksWithEmbeddings {
-            if let embedding {
-                // Use stored embedding (fast path)
-                let score = embeddingService.cosineSimilarity(queryEmbedding, embedding)
-                scored.append((chunk, score))
-            } else {
-                // Compute on the fly (slow path, for chunks without stored embeddings)
-                let chunkEmbedding = try await embeddingService.embed(text: chunk.chunkText)
-                let score = embeddingService.cosineSimilarity(queryEmbedding, chunkEmbedding)
-                scored.append((chunk, score))
-            }
-        }
-
-        scored.sort { $0.score > $1.score }
-        return Array(scored.prefix(topK).map(\.chunk))
-    }
-
-    func suggestedActions(for text: String) -> [String] {
-        var actions = ["Summarize", "Extract Key Points", "Q&A"]
-        if text.count > 10000 {
-            actions.append("Map-Reduce Summary")
-        }
-        return actions
-    }
-
     private func validatedExtractedText(from url: URL) throws -> String {
         let text = try extractText(from: url)
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
