@@ -8,73 +8,89 @@ struct InputBarView: View {
     let onStop: () -> Void
     let onAttachment: () -> Void
     let onMic: () -> Void
-    let onTemplate: () -> Void
 
     @FocusState private var isFocused: Bool
 
+    private var hasContent: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || hasAttachment
+    }
+
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            // Attachment button
+        HStack(spacing: 10) {
+            // Plus button
             Button(action: onAttachment) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(Color.accentColor)
+                Image(systemName: "plus")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+                    .background(Color(.systemGray2))
+                    .clipShape(Circle())
             }
 
-            // Template button
-            Button(action: onTemplate) {
-                Image(systemName: "text.badge.star")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Text field
-            TextField("Message SafeThink...", text: $text, axis: .vertical)
+            // Text field pill
+            TextField("Ask anything", text: $text, axis: .vertical)
+                .font(.system(size: 14))
                 .textFieldStyle(.plain)
-                .lineLimit(1...6)
+                .lineLimit(1...5)
                 .focused($isFocused)
                 .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color(.systemGray6))
-                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .padding(.vertical, 7)
+                .background(Color(.systemGray5))
+                .clipShape(Capsule())
 
-            // Mic button
-            Button(action: onMic) {
-                Image(systemName: "mic.fill")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-            }
-
-            // Send / Stop button
+            // Right action button
             if isGenerating {
                 Button(action: onStop) {
-                    Image(systemName: "stop.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.red)
+                    Image(systemName: "stop.fill")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(Color(.systemGray2))
+                        .clipShape(Circle())
+                }
+            } else if hasContent {
+                Button(action: onSend) {
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(Color.accentColor)
+                        .clipShape(Circle())
                 }
             } else {
-                Button(action: onSend) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !hasAttachment ? Color.gray : Color.accentColor)
+                Button(action: onMic) {
+                    Image(systemName: "waveform")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(Color(.systemGray2))
+                        .clipShape(Circle())
                 }
-                .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !hasAttachment)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
         .background(.bar)
     }
 }
 
 #Preview {
-    InputBarView(
-        text: .constant("Hello"),
-        isGenerating: false,
-        onSend: {},
-        onStop: {},
-        onAttachment: {},
-        onMic: {},
-        onTemplate: {}
-    )
+    VStack {
+        InputBarView(
+            text: .constant(""),
+            isGenerating: false,
+            onSend: {},
+            onStop: {},
+            onAttachment: {},
+            onMic: {}
+        )
+        InputBarView(
+            text: .constant("Hello"),
+            isGenerating: false,
+            onSend: {},
+            onStop: {},
+            onAttachment: {},
+            onMic: {}
+        )
+    }
 }

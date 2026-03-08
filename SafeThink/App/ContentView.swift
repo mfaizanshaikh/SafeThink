@@ -23,9 +23,10 @@ enum SidebarItem: String, CaseIterable, Identifiable {
 struct ContentView: View {
     @StateObject private var chatViewModel = ChatViewModel()
     @State private var selectedItem: SidebarItem? = .chat
+    @State private var columnVisibility: NavigationSplitViewVisibility = .detailOnly
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             List(SidebarItem.allCases, selection: $selectedItem) { item in
                 Label(item.rawValue, systemImage: item.icon)
                     .tag(item)
@@ -40,7 +41,11 @@ struct ContentView: View {
                     }
                 }
             case .chat:
-                NavigationStack { ChatView(viewModel: chatViewModel) { selectedItem = .models } }
+                NavigationStack {
+                    ChatView(viewModel: chatViewModel, onShowSidebar: {
+                        columnVisibility = .all
+                    }) { selectedItem = .models }
+                }
             case .models:
                 NavigationStack { ModelManagerView() }
             case .privacy:
@@ -48,7 +53,11 @@ struct ContentView: View {
             case .settings:
                 NavigationStack { SettingsView() }
             case nil:
-                NavigationStack { ChatView(viewModel: chatViewModel) { selectedItem = .models } }
+                NavigationStack {
+                    ChatView(viewModel: chatViewModel, onShowSidebar: {
+                        columnVisibility = .all
+                    }) { selectedItem = .models }
+                }
             }
         }
     }

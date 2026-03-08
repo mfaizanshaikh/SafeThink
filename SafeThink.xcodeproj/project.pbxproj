@@ -18,7 +18,6 @@
 		1E56C76602FC4044BFF766CF /* ModelDownloadServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86C7C38FB2615AC711F6531D /* ModelDownloadServiceTests.swift */; };
 		1EBAA9A31547A6AED91895F3 /* ExportServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F0C242F5A91E53CA2425C7 /* ExportServiceTests.swift */; };
 		1FC5EFB479ABA1A1FE930007 /* SecuritySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D75C0A9E9764E799BD884EF6 /* SecuritySettingsView.swift */; };
-		1FDA0D7F903E70FD043B64A5 /* PromptTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A65E86579C0A71AD7FF3F35 /* PromptTemplate.swift */; };
 		2A403BCDC9F2DA885A1EF492 /* ModelManagerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F462B35E261747B0B00E40 /* ModelManagerViewModel.swift */; };
 		3144381CFC5CF009E89A365E /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C43BFDFA78D1A1D8099AF117 /* Date+Extensions.swift */; };
 		3A0585D67AFB166030CCB2D4 /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6A43B4411DC6A577494A090 /* LockScreenView.swift */; };
@@ -40,7 +39,6 @@
 		7168B094D8776E8E2E447E8C /* DocumentChunk.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD54192560E58EB0C9ED6007 /* DocumentChunk.swift */; };
 		7A870D55E0EC327B18D71352 /* InferenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BD12E824ECE5E41A73149F5 /* InferenceService.swift */; };
 		816987D4E176169533861BF5 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87836B4D27D3DEBF67CB1A5C /* Message.swift */; };
-		8DB3A6D285E93A77B26CF288 /* PromptTemplateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA17583AF2B91FE5BBE3FF9F /* PromptTemplateView.swift */; };
 		9434D6C4528EE6C0AF9E194D /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DB84FF074BAC4578674D322 /* OnboardingView.swift */; };
 		9DB241A8428FE02D26B87CC3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0C194792F983CA85F530F8 /* ContentView.swift */; };
 		A092D02911A44876DE8047B4 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04A5DF95E3369A7F8C078F18 /* ChatView.swift */; };
@@ -94,7 +92,6 @@
 		1D2467BE9F4BA48A7A62EFDC /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
 		1F7ADC4402D12CB2551CDE28 /* Memory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Memory.swift; sourceTree = "<group>"; };
 		24CAA6BE9F0245876D38B511 /* NetworkLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkLog.swift; sourceTree = "<group>"; };
-		2A65E86579C0A71AD7FF3F35 /* PromptTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptTemplate.swift; sourceTree = "<group>"; };
 		2F7009AA8B4198B70FB7DBF9 /* String+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "String+Extensions.swift"; sourceTree = "<group>"; };
 		31F0C242F5A91E53CA2425C7 /* ExportServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportServiceTests.swift; sourceTree = "<group>"; };
 		35D7ECB42665FA7CD2C3C563 /* DocumentServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentServiceTests.swift; sourceTree = "<group>"; };
@@ -133,7 +130,6 @@
 		B6E0164ED51BBD888009F2AE /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
 		BE7B92859D051B7DC7886A69 /* CodeBlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeBlockView.swift; sourceTree = "<group>"; };
 		C43BFDFA78D1A1D8099AF117 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
-		CA17583AF2B91FE5BBE3FF9F /* PromptTemplateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptTemplateView.swift; sourceTree = "<group>"; };
 		D0809EA14CC99584F15BECB1 /* ConversationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationListView.swift; sourceTree = "<group>"; };
 		D672E7BA9CA35B3E56712099 /* NetworkLogService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkLogService.swift; sourceTree = "<group>"; };
 		D75C0A9E9764E799BD884EF6 /* SecuritySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecuritySettingsView.swift; sourceTree = "<group>"; };
@@ -178,8 +174,7 @@
 				87836B4D27D3DEBF67CB1A5C /* Message.swift */,
 				ABA97BF8AA824A9E4E784332 /* ModelInfo.swift */,
 				24CAA6BE9F0245876D38B511 /* NetworkLog.swift */,
-				2A65E86579C0A71AD7FF3F35 /* PromptTemplate.swift */,
-			);
+				);
 			path = Models;
 			sourceTree = "<group>";
 		};
@@ -320,8 +315,7 @@
 				BE7B92859D051B7DC7886A69 /* CodeBlockView.swift */,
 				96CD83A22F9F60E5023C288D /* LoadingIndicator.swift */,
 				B6A43B4411DC6A577494A090 /* LockScreenView.swift */,
-				CA17583AF2B91FE5BBE3FF9F /* PromptTemplateView.swift */,
-				7875381E09EDA7C0E5225E72 /* WaveformView.swift */,
+					7875381E09EDA7C0E5225E72 /* WaveformView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -519,9 +513,7 @@
 				9434D6C4528EE6C0AF9E194D /* OnboardingView.swift in Sources */,
 				DA2709574E77A9960600810E /* PrivacyDashboardView.swift in Sources */,
 				FD230FC13A8B4233D5296947 /* PrivacyDashboardViewModel.swift in Sources */,
-				1FDA0D7F903E70FD043B64A5 /* PromptTemplate.swift in Sources */,
-				8DB3A6D285E93A77B26CF288 /* PromptTemplateView.swift in Sources */,
-				0F21DD6AF303E78BD3629811 /* SafeThinkApp.swift in Sources */,
+					0F21DD6AF303E78BD3629811 /* SafeThinkApp.swift in Sources */,
 				4961F5AB90C217236E95781B /* SearchService.swift in Sources */,
 				562FAC81BF44C4122C509526 /* SecurityService.swift in Sources */,
 				1FC5EFB479ABA1A1FE930007 /* SecuritySettingsView.swift in Sources */,

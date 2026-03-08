@@ -16,17 +16,6 @@ struct ModelManagerView: View {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button {
-                        Task { await viewModel.checkForUpdates() }
-                    } label: {
-                        if viewModel.isCheckingUpdates {
-                            ProgressView()
-                        } else {
-                            Label("Check Updates", systemImage: "arrow.clockwise")
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
                 }
             }
 

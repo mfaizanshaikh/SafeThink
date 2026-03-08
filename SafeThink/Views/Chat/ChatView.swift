@@ -4,6 +4,7 @@ struct ChatView: View {
     @ObservedObject var viewModel: ChatViewModel
     @ObservedObject private var inferenceService = InferenceService.shared
     @StateObject private var voiceService = VoiceService.shared
+    var onShowSidebar: (() -> Void)?
     var onNavigateToModels: (() -> Void)?
     @State private var showConversationList = false
     @State private var showAttachmentMenu = false
@@ -134,17 +135,17 @@ struct ChatView: View {
                 onSend: { Task { await viewModel.sendMessage() } },
                 onStop: { viewModel.stopGeneration() },
                 onAttachment: { showAttachmentMenu = true },
-                onMic: { toggleVoiceInput() },
-                onTemplate: { viewModel.showTemplates = true }
+                onMic: { toggleVoiceInput() }
             )
         }
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
-                    showConversationList = true
+                    onShowSidebar?()
                 } label: {
-                    Image(systemName: "sidebar.left")
+                    Image(systemName: "line.3.horizontal")
                 }
             }
             ToolbarItem(placement: .principal) {
@@ -179,12 +180,6 @@ struct ChatView: View {
         .sheet(isPresented: $showAttachmentMenu) {
             AttachmentMenuView(viewModel: viewModel)
                 .presentationDetents([.medium])
-        }
-        .sheet(isPresented: $viewModel.showTemplates) {
-            PromptTemplateView(onSelect: { template in
-                viewModel.applyTemplate(template)
-            })
-            .presentationDetents([.medium])
         }
         .alert("Edit Message", isPresented: .init(
             get: { editingMessageId != nil },
@@ -240,6 +235,6 @@ struct ChatView: View {
 
 #Preview {
     NavigationStack {
-        ChatView(viewModel: ChatViewModel())
+        ChatView(viewModel: ChatViewModel(), onShowSidebar: nil)
     }
 }

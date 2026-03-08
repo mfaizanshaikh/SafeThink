@@ -1,6 +1,4 @@
 import SwiftUI
-import MLXLLM
-import MLXLMCommon
 
 @main
 struct SafeThinkApp: App {
@@ -11,12 +9,6 @@ struct SafeThinkApp: App {
 
     init() {
         try? DatabaseService.shared.setup()
-
-        // Register qwen3_5 model type as alias for Qwen3Next
-        LLMModelFactory.shared.typeRegistry.registerModelType("qwen3_5") { data in
-            let configuration = try JSONDecoder().decode(Qwen3NextConfiguration.self, from: data)
-            return Qwen3NextModel(configuration)
-        }
     }
 
     private func loadLastActiveModel() async {

@@ -17,7 +17,6 @@ final class ChatViewModel: ObservableObject {
     @Published var selectedImages: [UIImage] = []
     @Published var attachedDocumentURL: URL?
     @Published var isWebSearchEnabled = false
-    @Published var showTemplates = false
     @Published var errorMessage: String?
     @Published var showNoModelAlert = false
 
@@ -332,13 +331,6 @@ final class ChatViewModel: ObservableObject {
 
         isGenerating = false
         streamingText = ""
-    }
-
-    // MARK: - Template
-
-    func applyTemplate(_ template: PromptTemplate) {
-        inputText = template.prompt
-        showTemplates = false
     }
 
     // MARK: - Image Editing
