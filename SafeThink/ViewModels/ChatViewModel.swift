@@ -126,6 +126,7 @@ final class ChatViewModel: ObservableObject {
         let attachedImage = selectedImages.first
         var userContent = text
         var editedImagePath: String?
+        var imageAnalysis: String?
 
         if let image = attachedImage {
             let uuid = UUID().uuidString
@@ -135,28 +136,34 @@ final class ChatViewModel: ObservableObject {
             }
 
             // Parse editing intent from text
+            var hasEditOps = false
             if !text.isEmpty {
                 let ops = Self.parseImageEditOperations(text)
                 if !ops.isEmpty {
+                    hasEditOps = true
                     let edited = await applyImageEdits(image, operations: ops)
                     editedImagePath = saveImage(edited, name: "edited_\(uuid)")
                 }
             }
 
+            // Analyze image using Vision framework (OCR, classification, etc.)
+            if !hasEditOps {
+                imageAnalysis = await imageService.analyzeImage(preprocessed)
+            }
+
             selectedImages.removeAll()
         }
 
-        // Handle document attachment
+        // Handle document attachment (file already copied to app sandbox by AttachmentMenuView)
         var documentText: String?
         var documentName: String?
         if let docURL = attachedDocumentURL {
-            let accessed = docURL.startAccessingSecurityScopedResource()
-            defer { if accessed { docURL.stopAccessingSecurityScopedResource() } }
             documentName = docURL.lastPathComponent
             documentText = try? documentService.extractText(from: docURL)
             if text.isEmpty {
                 userContent = "[Document: \(documentName ?? "document")]"
             }
+            try? FileManager.default.removeItem(at: docURL)
             attachedDocumentURL = nil
         }
 
@@ -182,6 +189,12 @@ final class ChatViewModel: ObservableObject {
             if docText.count > maxChars {
                 contextMsg += "\n\n[Document truncated — showing first \(maxChars) characters of \(docText.count) total]"
             }
+            llmMessages.insert(["role": "system", "content": contextMsg], at: 1)
+        }
+
+        // Add image analysis context for the LLM
+        if let analysis = imageAnalysis, !analysis.isEmpty {
+            let contextMsg = "The user has attached an image. Since you are a text-only model, the image was analyzed using on-device Vision AI. Here is what was detected:\n\n\(analysis)\n\nUse this analysis to answer the user's question about the image."
             llmMessages.insert(["role": "system", "content": contextMsg], at: 1)
         }
 

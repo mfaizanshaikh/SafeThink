@@ -135,6 +135,78 @@ final class ImageService: ObservableObject {
         }
     }
 
+    // MARK: - Image Analysis (Vision Framework)
+
+    nonisolated func analyzeImage(_ image: UIImage) async -> String {
+        guard let cgImage = image.cgImage else { return "" }
+
+        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+        var descriptions: [String] = []
+
+        // 1. OCR — extract any visible text
+        let textRequest = VNRecognizeTextRequest()
+        textRequest.recognitionLevel = .accurate
+        textRequest.usesLanguageCorrection = true
+
+        // 2. Image classification — scene/object labels
+        let classifyRequest = VNClassifyImageRequest()
+
+        // 3. Face detection
+        let faceRequest = VNDetectFaceRectanglesRequest()
+
+        // 4. Barcode / QR detection
+        let barcodeRequest = VNDetectBarcodesRequest()
+
+        do {
+            try handler.perform([textRequest, classifyRequest, faceRequest, barcodeRequest])
+        } catch {
+            return ""
+        }
+
+        // Process OCR results
+        if let textResults = textRequest.results, !textResults.isEmpty {
+            let lines = textResults.compactMap { $0.topCandidates(1).first?.string }
+            if !lines.isEmpty {
+                descriptions.append("Text found in image: \"\(lines.joined(separator: " | "))\"")
+            }
+        }
+
+        // Process classification results (top labels with confidence > 0.3)
+        if let classResults = classifyRequest.results {
+            let topLabels = classResults
+                .filter { $0.confidence > 0.3 }
+                .prefix(8)
+                .map { "\($0.identifier.replacingOccurrences(of: "_", with: " ")) (\(Int($0.confidence * 100))%)" }
+            if !topLabels.isEmpty {
+                descriptions.append("Image classification: \(topLabels.joined(separator: ", "))")
+            }
+        }
+
+        // Process face detection
+        if let faceResults = faceRequest.results, !faceResults.isEmpty {
+            descriptions.append("Faces detected: \(faceResults.count)")
+        }
+
+        // Process barcode detection
+        if let barcodeResults = barcodeRequest.results, !barcodeResults.isEmpty {
+            let barcodes = barcodeResults.compactMap { observation -> String? in
+                let type = observation.symbology.rawValue.replacingOccurrences(of: "VNBarcodeSymbology", with: "")
+                if let payload = observation.payloadStringValue {
+                    return "\(type): \(payload)"
+                }
+                return type
+            }
+            if !barcodes.isEmpty {
+                descriptions.append("Barcodes/QR detected: \(barcodes.joined(separator: ", "))")
+            }
+        }
+
+        // Add image dimensions
+        descriptions.append("Image size: \(cgImage.width)x\(cgImage.height)")
+
+        return descriptions.joined(separator: "\n")
+    }
+
     // MARK: - Helpers
 
     private func renderFilter(_ filter: CIFilter) -> UIImage? {

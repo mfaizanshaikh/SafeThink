@@ -74,7 +74,17 @@ struct AttachmentMenuView: View {
             }
             .fileImporter(isPresented: $showDocumentPicker, allowedContentTypes: [.pdf, .plainText, .commaSeparatedText]) { result in
                 if case .success(let url) = result {
-                    viewModel.attachedDocumentURL = url
+                    // Copy file to app sandbox immediately while security-scoped access is valid
+                    let accessed = url.startAccessingSecurityScopedResource()
+                    defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+                    let tempURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(url.lastPathComponent)
+                    try? FileManager.default.removeItem(at: tempURL)
+                    if (try? FileManager.default.copyItem(at: url, to: tempURL)) != nil {
+                        viewModel.attachedDocumentURL = tempURL
+                    } else {
+                        viewModel.attachedDocumentURL = url
+                    }
                     dismiss()
                 }
             }
