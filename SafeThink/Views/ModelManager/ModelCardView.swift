@@ -40,11 +40,6 @@ struct ModelCardView: View {
                 Label("Context: \(model.contextLength / 1024)K tokens", systemImage: "text.alignleft")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                if model.isMultimodal {
-                    Label("Vision", systemImage: "eye")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
             }
 
             // Status / Actions

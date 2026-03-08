@@ -206,14 +206,10 @@ struct ChatView: View {
 
     private var activeModelDisplayName: String {
         guard let loadedId = inferenceService.loadedModelId,
-              let model = ModelInfo.registry.first(where: {
-                  $0.downloadURL.replacingOccurrences(of: "https://huggingface.co/", with: "") == loadedId
-              }) else {
+              let model = ModelInfo.registry.first(where: { $0.id == loadedId }) else {
             return "No Model"
         }
-        return model.name
-            .replacingOccurrences(of: "-", with: " ")
-            .replacingOccurrences(of: "([a-zA-Z])([0-9])", with: "$1 $2", options: .regularExpression)
+        return model.displayName
     }
 
     private func toggleVoiceInput() {

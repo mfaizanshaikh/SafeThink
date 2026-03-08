@@ -1,7 +1,5 @@
 import Foundation
-import MLX
-import MLXLLM
-import MLXLMCommon
+import LlamaSwift
 
 enum InferenceError: Error, LocalizedError {
     case modelNotLoaded
@@ -19,6 +17,22 @@ enum InferenceError: Error, LocalizedError {
     }
 }
 
+// Thread-safe flag shared between the main actor and the inference queue.
+private final class CancelFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _cancelled = false
+
+    var isCancelled: Bool { lock.withLock { _cancelled } }
+    func cancel() { lock.withLock { _cancelled = true } }
+    func reset()  { lock.withLock { _cancelled = false } }
+}
+
+/// Wraps an OpaquePointer so it can be safely captured across sendability boundaries.
+/// The caller is responsible for ensuring the pointer remains valid for the lifetime of any closure.
+private struct SendablePointer: @unchecked Sendable {
+    let pointer: OpaquePointer
+}
+
 @MainActor
 final class InferenceService: ObservableObject {
     static let shared = InferenceService()
@@ -29,117 +43,121 @@ final class InferenceService: ObservableObject {
     @Published private(set) var tokensPerSecond: Double = 0
     @Published private(set) var modelLoadProgress: Double = 0
 
-    private var modelContainer: ModelContainer?
-    private var generationTask: Task<Void, Never>?
-    private var backgroundUnloadTask: Task<Void, Never>?
-    private let backgroundUnloadDelay: TimeInterval = 30
+    // Raw llama.cpp handles – only written on main actor via DispatchQueue.main callbacks.
+    private var llamaModel: OpaquePointer?
+    private var llamaContext: OpaquePointer?
+
+    // Serial queue that serialises all llama.cpp calls.
+    // Free is always enqueued after any in-progress generation block, so use-after-free is impossible.
+    private let llamaQueue = DispatchQueue(label: "com.safethink.inference", qos: .userInitiated)
+
+    private let cancelFlag = CancelFlag()
 
     private init() {
+        llamaQueue.sync { llama_backend_init() }
         setupThermalMonitoring()
     }
 
     // MARK: - Model Loading
 
-    /// Load model from a local directory containing MLX model files
-    func loadModel(from directory: URL) async throws {
-        unloadModel()
+    func loadModel(from fileURL: URL) async throws {
+        enqueueUnload()
         modelLoadProgress = 0
 
-        let configuration = ModelConfiguration(directory: directory)
-        let container = try await LLMModelFactory.shared.loadContainer(
-            configuration: configuration
-        ) { progress in
-            Task { @MainActor in
-                self.modelLoadProgress = progress.fractionCompleted
+        let path = fileURL.path
+
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            llamaQueue.async {
+                var mparams = llama_model_default_params()
+                mparams.n_gpu_layers = 99
+
+                guard let model = llama_model_load_from_file(path, mparams) else {
+                    DispatchQueue.main.async {
+                        cont.resume(throwing: InferenceError.generationFailed(
+                            "Failed to load \(fileURL.lastPathComponent)"))
+                    }
+                    return
+                }
+
+                var cparams = llama_context_default_params()
+                cparams.n_ctx = 4096
+                cparams.n_batch = 512
+
+                guard let ctx = llama_init_from_model(model, cparams) else {
+                    llama_model_free(model)
+                    DispatchQueue.main.async {
+                        cont.resume(throwing: InferenceError.generationFailed("Failed to create inference context"))
+                    }
+                    return
+                }
+
+                DispatchQueue.main.async {
+                    self.llamaModel = model
+                    self.llamaContext = ctx
+                    self.isModelLoaded = true
+                    self.loadedModelId = fileURL.deletingLastPathComponent().lastPathComponent
+                    self.modelLoadProgress = 1.0
+                    cont.resume()
+                }
             }
         }
-
-        self.modelContainer = container
-        self.isModelLoaded = true
-        self.loadedModelId = directory.lastPathComponent
-        self.modelLoadProgress = 1.0
-    }
-
-    /// Load model from a HuggingFace repository ID (downloads if needed)
-    func loadModel(huggingFaceId: String) async throws {
-        unloadModel()
-        modelLoadProgress = 0
-
-        let configuration = ModelConfiguration(id: huggingFaceId)
-        let container = try await LLMModelFactory.shared.loadContainer(
-            configuration: configuration
-        ) { progress in
-            Task { @MainActor in
-                self.modelLoadProgress = progress.fractionCompleted
-            }
-        }
-
-        self.modelContainer = container
-        self.isModelLoaded = true
-        self.loadedModelId = huggingFaceId
-        self.modelLoadProgress = 1.0
     }
 
     func unloadModel() {
-        cancelGeneration()
-        backgroundUnloadTask?.cancel()
-        backgroundUnloadTask = nil
-        modelContainer = nil
+        cancelFlag.cancel()
+        enqueueUnload()
         isModelLoaded = false
         loadedModelId = nil
         tokensPerSecond = 0
         modelLoadProgress = 0
     }
 
-    // MARK: - Background Model Management
+    // Enqueues a free of current handles on the serial queue.
+    // Because the queue is serial, this always executes after any in-progress generation block.
+    private func enqueueUnload() {
+        let oldCtx   = llamaContext
+        let oldModel = llamaModel
+        llamaContext = nil
+        llamaModel   = nil
+        isModelLoaded = false
 
-    /// Schedule model unload after delay (called when app enters background)
-    func scheduleBackgroundUnload() {
-        backgroundUnloadTask?.cancel()
-        backgroundUnloadTask = Task {
-            try? await Task.sleep(for: .seconds(backgroundUnloadDelay))
-            if !Task.isCancelled {
-                unloadModel()
-            }
+        llamaQueue.async {
+            if let c = oldCtx   { llama_free(c) }
+            if let m = oldModel { llama_model_free(m) }
         }
     }
 
-    /// Cancel any pending background unload (called when app returns to foreground)
-    func cancelBackgroundUnload() {
-        backgroundUnloadTask?.cancel()
-        backgroundUnloadTask = nil
+    // MARK: - Background Management
+
+    func scheduleBackgroundUnload() {
+        llamaQueue.asyncAfter(deadline: .now() + 30) { [weak self] in
+            DispatchQueue.main.async { self?.unloadModel() }
+        }
     }
+
+    func cancelBackgroundUnload() {}
 
     // MARK: - Thermal Monitoring
 
     private func setupThermalMonitoring() {
+        let flag = cancelFlag
         NotificationCenter.default.addObserver(
             forName: ProcessInfo.thermalStateDidChangeNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.handleThermalChange()
-        }
-    }
-
-    private func handleThermalChange() {
-        let state = ProcessInfo.processInfo.thermalState
-        switch state {
-        case .serious, .critical:
-            // Cancel ongoing generation to reduce thermal load
-            if isGenerating {
-                cancelGeneration()
+            if ProcessInfo.processInfo.thermalState == .critical {
+                flag.cancel()
+                self?.isGenerating = false
             }
-        default:
-            break
         }
     }
 
     var thermalWarning: String? {
         switch ProcessInfo.processInfo.thermalState {
-        case .serious: return "Device is warm. Performance may be reduced."
+        case .serious:  return "Device is warm. Performance may be reduced."
         case .critical: return "Device is overheating. Generation paused."
-        default: return nil
+        default:        return nil
         }
     }
 
@@ -151,78 +169,118 @@ final class InferenceService: ObservableObject {
         temperature: Float = 0.7,
         topP: Float = 0.9
     ) -> AsyncStream<String> {
-        AsyncStream { continuation in
-            generationTask = Task {
-                guard let container = modelContainer else {
+        guard let model = llamaModel, let ctx = llamaContext else {
+            return AsyncStream { $0.finish() }
+        }
+
+        cancelFlag.reset()
+        isGenerating = true
+
+        let flag    = cancelFlag
+        let queue   = llamaQueue
+        let maxT    = maxTokens
+        let temp    = temperature
+        let topPVal = topP
+        let sModel  = SendablePointer(pointer: model)
+        let sCtx    = SendablePointer(pointer: ctx)
+
+        return AsyncStream { [weak self] continuation in
+            queue.async {
+                let model = sModel.pointer
+                let ctx   = sCtx.pointer
+
+                defer {
+                    let mem = llama_get_memory(ctx)
+                    llama_memory_clear(mem, true)
+                    DispatchQueue.main.async { self?.isGenerating = false }
                     continuation.finish()
-                    return
                 }
 
-                self.isGenerating = true
+                let vocab = llama_model_get_vocab(model)
+                let prompt = Self.buildChatMLPrompt(from: messages)
+                var tokens = Self.tokenize(vocab: vocab!, text: prompt)
+                guard !tokens.isEmpty else { return }
+
+                // Prefill: decode the prompt.
+                let prefillOK = tokens.withUnsafeMutableBufferPointer { buf in
+                    let batch = llama_batch_get_one(buf.baseAddress, Int32(buf.count))
+                    return llama_decode(ctx, batch) == 0
+                }
+                guard prefillOK else { return }
+
+                // Sampler chain.
+                guard let sampler = llama_sampler_chain_init(llama_sampler_chain_default_params()) else { return }
+                defer { llama_sampler_free(sampler) }
+                llama_sampler_chain_add(sampler, llama_sampler_init_top_k(40))
+                llama_sampler_chain_add(sampler, llama_sampler_init_top_p(topPVal, 1))
+                llama_sampler_chain_add(sampler, llama_sampler_init_temp(temp))
+                llama_sampler_chain_add(sampler, llama_sampler_init_dist(LLAMA_DEFAULT_SEED))
+
                 let startTime = Date()
                 var totalTokens = 0
 
-                do {
-                    let input = try await container.perform { context in
-                        try await context.processor.prepare(input: .init(messages: messages))
-                    }
+                while totalTokens < maxT && !flag.isCancelled {
+                    if ProcessInfo.processInfo.thermalState == .critical { break }
 
-                    let generateParameters = GenerateParameters(
-                        temperature: temperature,
-                        topP: topP
-                    )
+                    let newToken = llama_sampler_sample(sampler, ctx, -1)
+                    if llama_vocab_is_eog(vocab, newToken) { break }
 
-                    let result = try await container.perform { context in
-                        try MLXLMCommon.generate(
-                            input: input,
-                            parameters: generateParameters,
-                            context: context
-                        ) { tokens in
-                            if Task.isCancelled {
-                                return .stop
-                            }
-
-                            // Check thermal state
-                            if ProcessInfo.processInfo.thermalState == .critical {
-                                return .stop
-                            }
-
-                            let text = context.tokenizer.decode(tokens: [tokens.last!])
-                            totalTokens += 1
-
-                            let elapsed = Date().timeIntervalSince(startTime)
-                            if elapsed > 0 {
-                                Task { @MainActor in
-                                    self.tokensPerSecond = Double(totalTokens) / elapsed
-                                }
-                            }
-
-                            continuation.yield(text)
-
-                            if totalTokens >= maxTokens {
-                                return .stop
-                            }
-                            return .more
+                    var buf = [CChar](repeating: 0, count: 256)
+                    let nPiece = llama_token_to_piece(vocab, newToken, &buf, 256, 0, false)
+                    if nPiece > 0 {
+                        let bytes = buf.prefix(Int(nPiece)).map { UInt8(bitPattern: $0) }
+                        if let piece = String(bytes: bytes, encoding: .utf8), !piece.isEmpty {
+                            continuation.yield(piece)
                         }
                     }
 
-                    _ = result
+                    totalTokens += 1
 
-                } catch {
-                    if !Task.isCancelled {
-                        continuation.yield("\n[Error: \(error.localizedDescription)]")
+                    if totalTokens % 10 == 0 {
+                        let tps = Double(totalTokens) / max(Date().timeIntervalSince(startTime), 0.001)
+                        DispatchQueue.main.async { self?.tokensPerSecond = tps }
                     }
-                }
 
-                self.isGenerating = false
-                continuation.finish()
+                    // Advance KV cache with the new token.
+                    var nextToken = newToken
+                    let decodeOK = withUnsafeMutablePointer(to: &nextToken) { ptr in
+                        let batch = llama_batch_get_one(ptr, 1)
+                        return llama_decode(ctx, batch) == 0
+                    }
+                    if !decodeOK { break }
+                }
             }
         }
     }
 
     func cancelGeneration() {
-        generationTask?.cancel()
-        generationTask = nil
+        cancelFlag.cancel()
         isGenerating = false
+    }
+
+    // MARK: - Helpers
+
+    nonisolated private static func tokenize(vocab: OpaquePointer, text: String) -> [Int32] {
+        return text.withCString { cStr in
+            let textLen = Int32(strlen(cStr))
+            let nRequired = llama_tokenize(vocab, cStr, textLen, nil, 0, true, true)
+            let count = Int(-nRequired)
+            guard count > 0 else { return [] }
+            var tokens = [Int32](repeating: 0, count: count)
+            let n = llama_tokenize(vocab, cStr, textLen, &tokens, Int32(count), true, true)
+            guard n > 0 else { return [] }
+            return Array(tokens.prefix(Int(n)))
+        }
+    }
+
+    nonisolated private static func buildChatMLPrompt(from messages: [[String: String]]) -> String {
+        var prompt = ""
+        for message in messages {
+            let role    = message["role"]    ?? "user"
+            let content = message["content"] ?? ""
+            prompt += "<|im_start|>\(role)\n\(content)<|im_end|>\n"
+        }
+        prompt += "<|im_start|>assistant\n"
+        return prompt
     }
 }

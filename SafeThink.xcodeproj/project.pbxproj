@@ -14,7 +14,7 @@
 		0F21DD6AF303E78BD3629811 /* SafeThinkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76BC99D1CB9D6130847D547D /* SafeThinkApp.swift */; };
 		136FFE4B3D5A5C59F4D0BCB6 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83E08B6731122747C8D54AAE /* ChatViewModel.swift */; };
 		16FC9F5BF2C85B4289F67114 /* ModelDownloadServiceIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFFDC0AAD491111B52E93913 /* ModelDownloadServiceIntegrationTests.swift */; };
-		1D7FD506BEF009C6F45F702E /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = A8ED192D89767FA59D8B952D /* MLX */; };
+		1D7FD506BEF009C6F45F702E /* LlamaSwift in Frameworks */ = {isa = PBXBuildFile; productRef = D7D71397C9B72521E0121615 /* LlamaSwift */; };
 		1E56C76602FC4044BFF766CF /* ModelDownloadServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86C7C38FB2615AC711F6531D /* ModelDownloadServiceTests.swift */; };
 		1EBAA9A31547A6AED91895F3 /* ExportServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31F0C242F5A91E53CA2425C7 /* ExportServiceTests.swift */; };
 		1FC5EFB479ABA1A1FE930007 /* SecuritySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D75C0A9E9764E799BD884EF6 /* SecuritySettingsView.swift */; };
@@ -26,13 +26,11 @@
 		3FB9DF9A129F6232344C3B01 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D08866B23474FB251527A1 /* SettingsViewModel.swift */; };
 		46ADBFA9EE6B8F8B00F8DA0D /* DatabaseServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8987C270C395A6256227193 /* DatabaseServiceTests.swift */; };
 		4961F5AB90C217236E95781B /* SearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7888F05C0EBFAE2E42AD73E4 /* SearchService.swift */; };
-		4AB6364AB8F12B1A80DEBA14 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = F50B9D8A7DC24263980ADCE2 /* MLXLLM */; };
-		4C3EC949236746338DDFEB55 /* Splash in Frameworks */ = {isa = PBXBuildFile; productRef = 4B4BE5508C036585C05A0467 /* Splash */; };
+		4AB6364AB8F12B1A80DEBA14 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = D1752CFC60C794E1F65A2FDC /* GRDB */; };
 		53D249E2643C5AC518B4453E /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6E0164ED51BBD888009F2AE /* ExportService.swift */; };
 		562FAC81BF44C4122C509526 /* SecurityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60FB2E7D610D143FA3779600 /* SecurityService.swift */; };
 		5824074C90D4BCBE7022892D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FAD69432E6F93485D2746269 /* Assets.xcassets */; };
 		5B93BAF3A312977C90FCA393 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C7ACF1750E587F0D5E25CEF /* SettingsView.swift */; };
-		609C383C2ED0162E9348D39C /* Embeddings in Frameworks */ = {isa = PBXBuildFile; productRef = 3F622153E9BC2D2DA4E37D73 /* Embeddings */; };
 		639C83053EEE24680B1E494E /* DocumentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 821923A6C7ED2D6F0DC25001 /* DocumentService.swift */; };
 		64F1EFF7EECF4027DC52B6F2 /* ModelCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7E5E476EE3B0FB97580B439 /* ModelCardView.swift */; };
 		69EB297AA39A0DD305B44195 /* SearchServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 167064699586ED693FC3595F /* SearchServiceTests.swift */; };
@@ -43,11 +41,11 @@
 		9DB241A8428FE02D26B87CC3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0C194792F983CA85F530F8 /* ContentView.swift */; };
 		A092D02911A44876DE8047B4 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04A5DF95E3369A7F8C078F18 /* ChatView.swift */; };
 		A37DD39D902E3F823DA34CD0 /* InputBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51FE0C698FE14051AB9C4DC1 /* InputBarView.swift */; };
-		A54FC2448CB8FFB0FD35C06A /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = C59B4881BDD79BA0C57243A3 /* MarkdownUI */; };
+		A54FC2448CB8FFB0FD35C06A /* Embeddings in Frameworks */ = {isa = PBXBuildFile; productRef = 3F622153E9BC2D2DA4E37D73 /* Embeddings */; };
 		A7C983DC73B8E502CA80C332 /* DocumentServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35D7ECB42665FA7CD2C3C563 /* DocumentServiceTests.swift */; };
 		A901F293478897FAA2210EF3 /* ModelDownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B7EEEA20C38D032B404440C /* ModelDownloadService.swift */; };
 		A9BAE5BAB5C7E679931DCEC6 /* LoadingIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96CD83A22F9F60E5023C288D /* LoadingIndicator.swift */; };
-		B136EB271B4D8FD622409D0A /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 6E1170570E5DCBB1585E8663 /* MLXLMCommon */; };
+		B136EB271B4D8FD622409D0A /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = C59B4881BDD79BA0C57243A3 /* MarkdownUI */; };
 		B2630F3E30EBEDA1B3C5F8AC /* AttachmentMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 143C0A2FC31B760281BCB46F /* AttachmentMenuView.swift */; };
 		B4627E08D9CA42261D108E76 /* VoiceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49A83622DD29A33E85794FCD /* VoiceService.swift */; };
 		B5A9212886AE0AAE3E5FD619 /* WaveformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7875381E09EDA7C0E5225E72 /* WaveformView.swift */; };
@@ -63,7 +61,7 @@
 		E0EC67532EC1FB08A4F043EF /* DefaultSystemPrompt.txt in Resources */ = {isa = PBXBuildFile; fileRef = F4632A71FF1C9C27545DDFEF /* DefaultSystemPrompt.txt */; };
 		E511F572E1287F368B607B4D /* MemoryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99ADA3BB023C09D8053B23A4 /* MemoryViewModel.swift */; };
 		E53F662246822A47451C74A4 /* String+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F7009AA8B4198B70FB7DBF9 /* String+Extensions.swift */; };
-		E68A88931D26C50B912DCB7A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = D1752CFC60C794E1F65A2FDC /* GRDB */; };
+		E68A88931D26C50B912DCB7A /* Splash in Frameworks */ = {isa = PBXBuildFile; productRef = 4B4BE5508C036585C05A0467 /* Splash */; };
 		E7D6C7E0415134FBFAD3020B /* Memory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F7ADC4402D12CB2551CDE28 /* Memory.swift */; };
 		E8A21F2937E9F5A9053C305D /* ImageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F180D32723668DA1601AF78F /* ImageEditorView.swift */; };
 		E928D0341B8FFFEBD3F40B66 /* DatabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEE8E74B4BABB87EF2A916BA /* DatabaseService.swift */; };
@@ -151,13 +149,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1D7FD506BEF009C6F45F702E /* MLX in Frameworks */,
-				4AB6364AB8F12B1A80DEBA14 /* MLXLLM in Frameworks */,
-				B136EB271B4D8FD622409D0A /* MLXLMCommon in Frameworks */,
-				E68A88931D26C50B912DCB7A /* GRDB in Frameworks */,
-				A54FC2448CB8FFB0FD35C06A /* MarkdownUI in Frameworks */,
-				4C3EC949236746338DDFEB55 /* Splash in Frameworks */,
-				609C383C2ED0162E9348D39C /* Embeddings in Frameworks */,
+				1D7FD506BEF009C6F45F702E /* LlamaSwift in Frameworks */,
+				4AB6364AB8F12B1A80DEBA14 /* GRDB in Frameworks */,
+				B136EB271B4D8FD622409D0A /* MarkdownUI in Frameworks */,
+				E68A88931D26C50B912DCB7A /* Splash in Frameworks */,
+				A54FC2448CB8FFB0FD35C06A /* Embeddings in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -174,7 +170,7 @@
 				87836B4D27D3DEBF67CB1A5C /* Message.swift */,
 				ABA97BF8AA824A9E4E784332 /* ModelInfo.swift */,
 				24CAA6BE9F0245876D38B511 /* NetworkLog.swift */,
-				);
+			);
 			path = Models;
 			sourceTree = "<group>";
 		};
@@ -315,7 +311,7 @@
 				BE7B92859D051B7DC7886A69 /* CodeBlockView.swift */,
 				96CD83A22F9F60E5023C288D /* LoadingIndicator.swift */,
 				B6A43B4411DC6A577494A090 /* LockScreenView.swift */,
-					7875381E09EDA7C0E5225E72 /* WaveformView.swift */,
+				7875381E09EDA7C0E5225E72 /* WaveformView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -391,9 +387,7 @@
 			);
 			name = SafeThink;
 			packageProductDependencies = (
-				A8ED192D89767FA59D8B952D /* MLX */,
-				F50B9D8A7DC24263980ADCE2 /* MLXLLM */,
-				6E1170570E5DCBB1585E8663 /* MLXLMCommon */,
+				D7D71397C9B72521E0121615 /* LlamaSwift */,
 				D1752CFC60C794E1F65A2FDC /* GRDB */,
 				C59B4881BDD79BA0C57243A3 /* MarkdownUI */,
 				4B4BE5508C036585C05A0467 /* Splash */,
@@ -443,8 +437,7 @@
 				32554DE8FD78D25322625AA9 /* XCRemoteSwiftPackageReference "GRDB" */,
 				F917DB9D47161048F898F9B0 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				B08D16506D215F3DD2B1970D /* XCRemoteSwiftPackageReference "Splash" */,
-				C7F27FB993D6960EF0E46B50 /* XCRemoteSwiftPackageReference "mlx-swift" */,
-				9B288DE87F752116D40E054C /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
+				9418C1F1F8A5F0D03BD06671 /* XCRemoteSwiftPackageReference "llama" */,
 				114A81150C2A92F688B8619A /* XCRemoteSwiftPackageReference "swift-embeddings" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -513,7 +506,7 @@
 				9434D6C4528EE6C0AF9E194D /* OnboardingView.swift in Sources */,
 				DA2709574E77A9960600810E /* PrivacyDashboardView.swift in Sources */,
 				FD230FC13A8B4233D5296947 /* PrivacyDashboardViewModel.swift in Sources */,
-					0F21DD6AF303E78BD3629811 /* SafeThinkApp.swift in Sources */,
+				0F21DD6AF303E78BD3629811 /* SafeThinkApp.swift in Sources */,
 				4961F5AB90C217236E95781B /* SearchService.swift in Sources */,
 				562FAC81BF44C4122C509526 /* SecurityService.swift in Sources */,
 				1FC5EFB479ABA1A1FE930007 /* SecuritySettingsView.swift in Sources */,
@@ -811,12 +804,12 @@
 				minimumVersion = 7.4.1;
 			};
 		};
-		9B288DE87F752116D40E054C /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
+		9418C1F1F8A5F0D03BD06671 /* XCRemoteSwiftPackageReference "llama" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
+			repositoryURL = "https://github.com/mattt/llama.swift";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.30.6;
+				minimumVersion = 2.8235.0;
 			};
 		};
 		B08D16506D215F3DD2B1970D /* XCRemoteSwiftPackageReference "Splash" */ = {
@@ -825,14 +818,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 0.16.0;
-			};
-		};
-		C7F27FB993D6960EF0E46B50 /* XCRemoteSwiftPackageReference "mlx-swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ml-explore/mlx-swift";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.30.6;
 			};
 		};
 		F917DB9D47161048F898F9B0 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
@@ -856,16 +841,6 @@
 			package = B08D16506D215F3DD2B1970D /* XCRemoteSwiftPackageReference "Splash" */;
 			productName = Splash;
 		};
-		6E1170570E5DCBB1585E8663 /* MLXLMCommon */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 9B288DE87F752116D40E054C /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = MLXLMCommon;
-		};
-		A8ED192D89767FA59D8B952D /* MLX */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C7F27FB993D6960EF0E46B50 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLX;
-		};
 		C59B4881BDD79BA0C57243A3 /* MarkdownUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F917DB9D47161048F898F9B0 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
@@ -876,10 +851,10 @@
 			package = 32554DE8FD78D25322625AA9 /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
 		};
-		F50B9D8A7DC24263980ADCE2 /* MLXLLM */ = {
+		D7D71397C9B72521E0121615 /* LlamaSwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 9B288DE87F752116D40E054C /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = MLXLLM;
+			package = 9418C1F1F8A5F0D03BD06671 /* XCRemoteSwiftPackageReference "llama" */;
+			productName = LlamaSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

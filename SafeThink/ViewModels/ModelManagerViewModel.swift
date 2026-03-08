@@ -8,7 +8,6 @@ final class ModelManagerViewModel: ObservableObject {
     @Published var activeModelId: String?
     @Published var showDeleteConfirmation = false
     @Published var modelToDelete: ModelInfo?
-    @Published var isCheckingUpdates = false
     @Published var errorMessage: String?
 
     private let downloadService = ModelDownloadService.shared
@@ -59,24 +58,14 @@ final class ModelManagerViewModel: ObservableObject {
     func activateModel(_ model: ModelInfo) async {
         guard downloadService.isModelDownloaded(model.id) else { return }
 
-        // Model files live in MLX Hub's cache, not our local models directory.
-        // Load via HuggingFace ID which resolves to the cached download.
-        let huggingFaceId = model.downloadURL
-            .replacingOccurrences(of: "https://huggingface.co/", with: "")
+        let fileURL = downloadService.modelFileURL(for: model)
         do {
-            try await inferenceService.loadModel(huggingFaceId: huggingFaceId)
+            try await inferenceService.loadModel(from: fileURL)
             activeModelId = model.id
             UserDefaults.standard.set(model.id, forKey: "lastActiveModelId")
         } catch {
             errorMessage = error.localizedDescription
         }
-    }
-
-    func checkForUpdates() async {
-        isCheckingUpdates = true
-        await downloadService.checkForUpdates()
-        isCheckingUpdates = false
-        refresh()
     }
 
     func compatibility(for model: ModelInfo) -> ModelCompatibility {

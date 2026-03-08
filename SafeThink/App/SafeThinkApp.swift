@@ -17,9 +17,8 @@ struct SafeThinkApp: App {
               let model = ModelInfo.registry.first(where: { $0.id == lastModelId }),
               ModelDownloadService.shared.isModelDownloaded(model.id) else { return }
 
-        let huggingFaceId = model.downloadURL
-            .replacingOccurrences(of: "https://huggingface.co/", with: "")
-        try? await inferenceService.loadModel(huggingFaceId: huggingFaceId)
+        let fileURL = ModelDownloadService.shared.modelFileURL(for: model)
+        try? await inferenceService.loadModel(from: fileURL)
     }
 
     var body: some Scene {

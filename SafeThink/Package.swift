@@ -10,8 +10,7 @@ let package = Package(
         .library(name: "SafeThink", targets: ["SafeThink"])
     ],
     dependencies: [
-        .package(url: "https://github.com/ml-explore/mlx-swift", from: "0.30.6"),
-        .package(url: "https://github.com/ml-explore/mlx-swift-lm", from: "2.30.6"),
+        .package(url: "https://github.com/mattt/llama.swift", from: "2.8235.0"),
         .package(url: "https://github.com/groue/GRDB.swift", from: "7.4.1"),
         .package(url: "https://github.com/gonzalezreal/swift-markdown-ui", from: "2.4.1"),
         .package(url: "https://github.com/JohnSundell/Splash", from: "0.16.0"),
@@ -21,9 +20,7 @@ let package = Package(
         .target(
             name: "SafeThink",
             dependencies: [
-                .product(name: "MLX", package: "mlx-swift"),
-                .product(name: "MLXLLM", package: "mlx-swift-lm"),
-                .product(name: "MLXLMCommon", package: "mlx-swift-lm"),
+                .product(name: "LlamaSwift", package: "llama.swift"),
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "MarkdownUI", package: "swift-markdown-ui"),
                 .product(name: "Splash", package: "Splash"),
