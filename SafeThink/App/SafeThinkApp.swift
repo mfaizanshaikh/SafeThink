@@ -7,6 +7,10 @@ struct SafeThinkApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("theme") private var themeRaw: String = AppTheme.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
+    @State private var showInsufficientRAMAlert = false
+
+    private static let minimumRAMGB: Double = 6
+    private static let deviceRAMGB: Double = Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824
 
     init() {
         try? DatabaseService.shared.setup()
@@ -46,9 +50,17 @@ struct SafeThinkApp: App {
                 }
             }
             .task {
+                if Self.deviceRAMGB < Self.minimumRAMGB {
+                    showInsufficientRAMAlert = true
+                }
                 await loadLastActiveModel()
             }
             .preferredColorScheme(AppTheme(rawValue: themeRaw)?.colorScheme)
+            .alert("Device Not Supported", isPresented: $showInsufficientRAMAlert) {
+                Button("Continue Anyway") {}
+            } message: {
+                Text("SafeThink requires at least 6 GB of RAM to run the Qwen 3.5 4B model. Your device has \(String(format: "%.0f", Self.deviceRAMGB)) GB. The app may crash or perform poorly.")
+            }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .background {
                     securityService.checkLockState()
