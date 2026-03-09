@@ -576,6 +576,7 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "SafeThink needs photo access to analyze and edit images. All processing happens on-device.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "SafeThink uses on-device speech recognition for voice input. No audio is sent to any server.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -663,6 +664,7 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "SafeThink needs photo access to analyze and edit images. All processing happens on-device.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "SafeThink uses on-device speech recognition for voice input. No audio is sent to any server.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

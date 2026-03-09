@@ -24,6 +24,12 @@ struct ModelSettingsView: View {
                 Toggle("Show Tokens/sec", isOn: $viewModel.showTokensPerSec)
             }
 
+            Section {
+                Toggle("Thinking Mode", isOn: $viewModel.thinkingMode)
+            } footer: {
+                Text("When enabled, the model shows its reasoning process before answering. Produces more accurate responses but takes longer to generate.")
+            }
+
             // Customization toggle
             Section {
                 Toggle("Enable Customization", isOn: $viewModel.customizationEnabled.animation())

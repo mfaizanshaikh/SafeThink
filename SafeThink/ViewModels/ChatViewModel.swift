@@ -351,7 +351,7 @@ final class ChatViewModel: ObservableObject {
             )
 
             let llmMessages: [[String: String]] = [
-                ["role": "system", "content": "You are SafeThink, a helpful AI assistant. Answer based on these web search results:\n\(searchContext)"],
+                ["role": "system", "content": "You are SafeThink, a private AI assistant. Answer the user's question using these web search results:\n\(searchContext)"],
                 ["role": "user", "content": query]
             ]
 
@@ -487,7 +487,10 @@ final class ChatViewModel: ObservableObject {
 
         // 1. System prompt (always included)
         let memoryContext = await memoryService.buildMemoryContext(for: userQuery)
-        var systemPrompt = "You are SafeThink, a helpful, accurate, and privacy-focused AI assistant running entirely on the user's device. Be concise and helpful."
+        let defaults = UserDefaults.standard
+        let basePrompt = defaults.string(forKey: "systemPrompt") ?? SettingsViewModel.defaultSystemPrompt
+        let thinkingEnabled = defaults.object(forKey: "thinkingMode") as? Bool ?? false
+        var systemPrompt = basePrompt + (thinkingEnabled ? " /think" : " /no_think")
         if !memoryContext.isEmpty {
             systemPrompt += "\n\n\(memoryContext)"
         }

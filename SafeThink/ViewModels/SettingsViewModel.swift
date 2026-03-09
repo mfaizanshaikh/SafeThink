@@ -28,10 +28,11 @@ final class SettingsViewModel: ObservableObject {
     @Published var hapticFeedback = true
 
     // AI Model
+    @Published var thinkingMode = false
     @Published var customizationEnabled = false
     @Published var temperature: Double = 0.7
     @Published var topP: Double = 0.9
-    @Published var systemPrompt = "You are SafeThink, a helpful, accurate, and privacy-focused AI assistant running entirely on the user's device."
+    @Published var systemPrompt = SettingsViewModel.defaultSystemPrompt
     @Published var responseFormat: ResponseFormat = .normal
     @Published var showTokensPerSec = true
 
@@ -53,11 +54,18 @@ final class SettingsViewModel: ObservableObject {
         loadSettings()
     }
 
-    static let defaultSystemPrompt = "You are SafeThink, a helpful, accurate, and privacy-focused AI assistant running entirely on the user's device."
+    static let defaultSystemPrompt: String = {
+        if let url = Bundle.main.url(forResource: "DefaultSystemPrompt", withExtension: "txt"),
+           let text = try? String(contentsOf: url, encoding: .utf8) {
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return "You are SafeThink, a private AI assistant that runs entirely on the user's iPhone. No data ever leaves this device. Be concise and helpful."
+    }()
 
     func loadSettings() {
         theme = AppTheme(rawValue: defaults.string(forKey: "theme") ?? "System") ?? .system
         hapticFeedback = defaults.object(forKey: "haptic") as? Bool ?? true
+        thinkingMode = defaults.object(forKey: "thinkingMode") as? Bool ?? false
         customizationEnabled = defaults.object(forKey: "customizationEnabled") as? Bool ?? false
         temperature = defaults.object(forKey: "temperature") as? Double ?? 0.7
         topP = defaults.object(forKey: "topP") as? Double ?? 0.9
@@ -71,6 +79,7 @@ final class SettingsViewModel: ObservableObject {
     func saveSettings() {
         defaults.set(theme.rawValue, forKey: "theme")
         defaults.set(hapticFeedback, forKey: "haptic")
+        defaults.set(thinkingMode, forKey: "thinkingMode")
         defaults.set(customizationEnabled, forKey: "customizationEnabled")
         defaults.set(temperature, forKey: "temperature")
         defaults.set(topP, forKey: "topP")

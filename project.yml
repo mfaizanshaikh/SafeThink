@@ -55,6 +55,7 @@ targets:
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "SafeThink needs photo access to analyze and edit images. All processing happens on-device."
         INFOPLIST_KEY_NSFaceIDUsageDescription: "SafeThink uses Face ID to protect your private conversations."
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
+        INFOPLIST_KEY_UIRequiresFullScreen: YES
     dependencies:
       - package: llama-swift
         product: LlamaSwift
