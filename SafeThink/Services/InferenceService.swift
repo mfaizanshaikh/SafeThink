@@ -209,10 +209,18 @@ final class InferenceService: ObservableObject {
                     tokens = Array(tokens.suffix(maxPromptTokens))
                 }
 
-                // Prefill: decode the prompt.
-                let prefillOK = tokens.withUnsafeMutableBufferPointer { buf in
-                    let batch = llama_batch_get_one(buf.baseAddress, Int32(buf.count))
-                    return llama_decode(ctx, batch) == 0
+                // Prefill: decode the prompt in n_batch-sized chunks to avoid exceeding batch buffer.
+                let batchSize = Int(llama_n_batch(ctx))
+                var prefillOK = true
+                var offset = 0
+                while offset < tokens.count {
+                    let chunkSize = min(batchSize, tokens.count - offset)
+                    let ok = tokens.withUnsafeMutableBufferPointer { buf in
+                        let batch = llama_batch_get_one(buf.baseAddress! + offset, Int32(chunkSize))
+                        return llama_decode(ctx, batch) == 0
+                    }
+                    if !ok { prefillOK = false; break }
+                    offset += chunkSize
                 }
                 guard prefillOK else { return }
 
