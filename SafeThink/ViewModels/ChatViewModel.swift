@@ -10,8 +10,8 @@ final class ChatViewModel: ObservableObject {
     @Published var isGenerating = false
     @Published var streamingText = ""
     @Published var tokensPerSecond: Double = 0
-    @Published var currentTokenCount = 0
-    @Published var maxTokenCount = 8192
+    private static let charsPerToken = 4
+    private static let maxGenerationTokens = 2048
     @Published var searchQuery = ""
     @Published var searchResults: [Message] = []
     @Published var selectedImages: [UIImage] = []
@@ -29,8 +29,13 @@ final class ChatViewModel: ObservableObject {
 
     static let aiDisclaimer = "AI-generated responses may be inaccurate. Verify important information independently."
 
+    private var promptBudgetChars: Int {
+        (inferenceService.contextSize - Self.maxGenerationTokens) * Self.charsPerToken
+    }
+
     var contextUsage: String {
-        "\(currentTokenCount) / \(maxTokenCount) tokens"
+        let used = messages.reduce(0) { $0 + $1.content.count } / Self.charsPerToken
+        return "\(used) / \(inferenceService.contextSize) tokens"
     }
 
     // MARK: - Conversation Management
@@ -178,27 +183,30 @@ final class ChatViewModel: ObservableObject {
         messages.append(userMessage)
         inputText = ""
 
-        // Build messages for LLM
-        var llmMessages = await buildLLMMessages(userQuery: text)
+        // Compute injected context sizes to reserve budget for them
+        let docMaxChars = min(documentText?.count ?? 0, promptBudgetChars / 3)
+        let imageAnalysisChars = min((imageAnalysis?.count ?? 0) + 200, 2000)
+        let webSearchReserve = isWebSearchEnabled ? 3000 : 0
+        let editContextChars = (attachedImage != nil && editedImagePath != nil) ? 300 : 0
+        let reservedChars = docMaxChars + imageAnalysisChars + webSearchReserve + editContextChars + 200
 
-        // Add document context (limit to ~750 tokens to fit 4096 context window)
+        // Build messages for LLM (history trimmed to fit budget minus reserved)
+        var llmMessages = await buildLLMMessages(userQuery: text, reservedChars: reservedChars)
+
+        // Add document context
         if let docText = documentText, let docName = documentName {
-            let maxChars = 3000
-            let truncated = String(docText.prefix(maxChars))
+            let truncated = String(docText.prefix(docMaxChars))
             var contextMsg = "The user has attached a document named \"\(docName)\". Here is the document content:\n\n\(truncated)"
-            if docText.count > maxChars {
-                contextMsg += "\n\n[Document truncated — showing first \(maxChars) characters of \(docText.count) total]"
-            }
-            // When document context is present, trim conversation history to leave room
-            while llmMessages.count > 3 {
-                llmMessages.remove(at: 1)
+            if docText.count > docMaxChars {
+                contextMsg += "\n\n[Document truncated — showing first \(docMaxChars) characters of \(docText.count) total]"
             }
             llmMessages.insert(["role": "system", "content": contextMsg], at: 1)
         }
 
-        // Add image analysis context for the LLM
+        // Add image analysis context
         if let analysis = imageAnalysis, !analysis.isEmpty {
-            let contextMsg = "The user has attached an image. Since you are a text-only model, the image was analyzed using on-device Vision AI. Here is what was detected:\n\n\(analysis)\n\nUse this analysis to answer the user's question about the image."
+            let capped = String(analysis.prefix(1800))
+            let contextMsg = "The user has attached an image. Since you are a text-only model, the image was analyzed using on-device Vision AI. Here is what was detected:\n\n\(capped)\n\nUse this analysis to answer the user's question about the image."
             llmMessages.insert(["role": "system", "content": contextMsg], at: 1)
         }
 
@@ -212,11 +220,10 @@ final class ChatViewModel: ObservableObject {
         // Handle web search if enabled
         if isWebSearchEnabled {
             if let searchResults = try? await searchService.search(query: text), !searchResults.isEmpty {
-                let searchText = searchResults.map { "- \($0.title): \($0.snippet)" }.joined(separator: "\n")
-                let insertIndex = llmMessages.count > 1 ? 1 : 0
+                let searchText = String(searchResults.map { "- \($0.title): \($0.snippet)" }.joined(separator: "\n").prefix(2800))
                 llmMessages.insert(
                     ["role": "system", "content": "Web search results for context:\n\(searchText)"],
-                    at: insertIndex
+                    at: min(1, llmMessages.count)
                 )
             }
             isWebSearchEnabled = false
@@ -337,7 +344,11 @@ final class ChatViewModel: ObservableObject {
         isGenerating = true
 
         if let results = try? await searchService.search(query: query) {
-            let searchContext = results.map { "- \($0.title): \($0.snippet) (\($0.url))" }.joined(separator: "\n")
+            let searchContext = String(
+                results.map { "- \($0.title): \($0.snippet) (\($0.url))" }
+                    .joined(separator: "\n")
+                    .prefix(promptBudgetChars - 500)
+            )
 
             let llmMessages: [[String: String]] = [
                 ["role": "system", "content": "You are SafeThink, a helpful AI assistant. Answer based on these web search results:\n\(searchContext)"],
@@ -470,24 +481,41 @@ final class ChatViewModel: ObservableObject {
 
     // MARK: - Helpers
 
-    private func buildLLMMessages(userQuery: String) async -> [[String: String]] {
-        var llmMessages: [[String: String]] = []
+    private func buildLLMMessages(userQuery: String, reservedChars: Int = 0) async -> [[String: String]] {
+        let chatMLOverhead = 30 // <|im_start|>role\n...<|im_end|>\n per message
+        let budget = promptBudgetChars - reservedChars
 
-        // System prompt with memory context
+        // 1. System prompt (always included)
         let memoryContext = await memoryService.buildMemoryContext(for: userQuery)
         var systemPrompt = "You are SafeThink, a helpful, accurate, and privacy-focused AI assistant running entirely on the user's device. Be concise and helpful."
         if !memoryContext.isEmpty {
             systemPrompt += "\n\n\(memoryContext)"
         }
-        llmMessages.append(["role": "system", "content": systemPrompt])
 
-        // Recent conversation history (keep within context window)
-        let recentMessages = messages.suffix(20) // Keep last 20 messages for context
-        for msg in recentMessages {
-            llmMessages.append(["role": msg.role.rawValue, "content": msg.content])
+        var usedChars = systemPrompt.count + chatMLOverhead
+
+        // 2. Current user query (always included)
+        let userQueryChars = userQuery.count + chatMLOverhead
+        usedChars += userQueryChars
+
+        // 3. Fill remaining budget with conversation history (newest first)
+        var historyMessages: [[String: String]] = []
+        let historyBudget = budget - usedChars
+
+        var historyChars = 0
+        for msg in messages.reversed() {
+            let msgChars = msg.content.count + chatMLOverhead
+            if historyChars + msgChars > historyBudget { break }
+            historyMessages.insert(["role": msg.role.rawValue, "content": msg.content], at: 0)
+            historyChars += msgChars
         }
 
-        // Current user message (if not already in history)
+        // Assemble final messages
+        var llmMessages: [[String: String]] = []
+        llmMessages.append(["role": "system", "content": systemPrompt])
+        llmMessages.append(contentsOf: historyMessages)
+
+        // Current user message (if not already in history from messages array)
         if messages.last?.content != userQuery {
             llmMessages.append(["role": "user", "content": userQuery])
         }

@@ -29,7 +29,6 @@ final class SettingsViewModel: ObservableObject {
 
     // AI Model
     @Published var customizationEnabled = false
-    @Published var contextWindowLimit = 8192
     @Published var temperature: Double = 0.7
     @Published var topP: Double = 0.9
     @Published var systemPrompt = "You are SafeThink, a helpful, accurate, and privacy-focused AI assistant running entirely on the user's device."
@@ -60,7 +59,6 @@ final class SettingsViewModel: ObservableObject {
         theme = AppTheme(rawValue: defaults.string(forKey: "theme") ?? "System") ?? .system
         hapticFeedback = defaults.object(forKey: "haptic") as? Bool ?? true
         customizationEnabled = defaults.object(forKey: "customizationEnabled") as? Bool ?? false
-        contextWindowLimit = defaults.object(forKey: "contextLimit") as? Int ?? 8192
         temperature = defaults.object(forKey: "temperature") as? Double ?? 0.7
         topP = defaults.object(forKey: "topP") as? Double ?? 0.9
         systemPrompt = defaults.string(forKey: "systemPrompt") ?? Self.defaultSystemPrompt
@@ -74,7 +72,6 @@ final class SettingsViewModel: ObservableObject {
         defaults.set(theme.rawValue, forKey: "theme")
         defaults.set(hapticFeedback, forKey: "haptic")
         defaults.set(customizationEnabled, forKey: "customizationEnabled")
-        defaults.set(contextWindowLimit, forKey: "contextLimit")
         defaults.set(temperature, forKey: "temperature")
         defaults.set(topP, forKey: "topP")
         defaults.set(systemPrompt, forKey: "systemPrompt")

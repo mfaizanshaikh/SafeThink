@@ -42,6 +42,7 @@ final class InferenceService: ObservableObject {
     @Published private(set) var loadedModelId: String?
     @Published private(set) var tokensPerSecond: Double = 0
     @Published private(set) var modelLoadProgress: Double = 0
+    private(set) var contextSize: Int = 8192
 
     // Raw llama.cpp handles – only written on main actor via DispatchQueue.main callbacks.
     private var llamaModel: OpaquePointer?
@@ -80,7 +81,7 @@ final class InferenceService: ObservableObject {
                 }
 
                 var cparams = llama_context_default_params()
-                cparams.n_ctx = 4096
+                cparams.n_ctx = 8192
                 cparams.n_batch = 512
 
                 guard let ctx = llama_init_from_model(model, cparams) else {

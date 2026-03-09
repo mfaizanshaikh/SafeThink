@@ -58,14 +58,6 @@ struct ModelSettingsView: View {
                         }
                         Slider(value: $viewModel.topP, in: 0...1, step: 0.05)
                     }
-
-                    Picker("Context Window", selection: $viewModel.contextWindowLimit) {
-                        Text("2K").tag(2048)
-                        Text("4K").tag(4096)
-                        Text("8K").tag(8192)
-                        Text("16K").tag(16384)
-                        Text("32K").tag(32768)
-                    }
                 }
 
                 Section("System Prompt") {
