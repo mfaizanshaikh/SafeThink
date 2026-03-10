@@ -40,6 +40,7 @@ targets:
           - ".swiftpm"
     settings:
       base:
+        TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: com.mfaizanshaikh.safethink
         MARKETING_VERSION: "1.0.0"
@@ -82,5 +83,6 @@ targets:
       - target: SafeThink
     settings:
       base:
+        TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: com.mfaizanshaikh.safethink.tests
